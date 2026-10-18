@@ -12,7 +12,7 @@ body:
         **Before you post**
 
         - ProsperoStore lists other people's apps. A bug inside a listed app goes to that app's own repository.
-        - A wrong or unsafe listing goes to the catalog: https://github.com/blackbearreloaded/ps5-homebrew-catalog/issues
+        - A wrong or unsafe listing goes to the catalog: https://github.com/darkxex/ps5-homebrew-catalog/issues
         - Do not post Sony SDK files, firmware, decrypted system files, keys or links to them.
   - type: textarea
     id: problem

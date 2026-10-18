@@ -65,19 +65,19 @@ static void check_addresses()
     assert(social::index_url() == base + "v1/index.json" && data_url(social::index_url()));
     assert(social::thread_url("PPSA99008") == base + "v1/apps/PPSA99008.json");
     assert(data_url(social::thread_url("PPSA99008")));
-    for (
-        const char *url : {
-            "https://raw.githubusercontent.com/blackbearreloaded/ps5-homebrew-catalog/main/v1/"
-            "index.json",
-            "https://raw.githubusercontent.com/blackbearreloaded/other/comments-data/v1/index.json",
-            "https://raw.githubusercontent.com/someone/ps5-homebrew-catalog/comments-data/v1/"
-            "index.json",
-            "http://raw.githubusercontent.com/blackbearreloaded/ps5-homebrew-catalog/comments-data/"
-            "v1/index.json",
-            "https://raw.githubusercontent.com.evil.example/blackbearreloaded/ps5-homebrew-catalog/"
-            "comments-data/v1/index.json",
-            "https://homebrew.page/api/v1/index.json",
-        })
+    for (const char *url : {
+             "https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/main/v1/"
+             "index.json",
+             "https://raw.githubusercontent.com/blackbearreloaded/other/comments-data/v1/"
+             "index.json",
+             "https://raw.githubusercontent.com/someone/ps5-homebrew-catalog/comments-data/v1/"
+             "index.json",
+             "http://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/comments-data/"
+             "v1/index.json",
+             "https://raw.githubusercontent.com.evil.example/darkxex/ps5-homebrew-catalog/"
+             "comments-data/v1/index.json",
+             "https://prosperostore.net/api/v1/index.json",
+         })
         assert(!data_url(url));
     for (const char *path :
          {"", "v1/", "v1/index.json?x=1", "v1/index.json#x", "v1/../../main/apps/PPSA99008.json",
@@ -89,11 +89,10 @@ static void check_addresses()
     // anything else, and their rule opens nothing of the catalog's.
     assert(!catalog::official_url(social::index_url()));
     assert(!catalog::artifact_url(social::index_url()));
-    assert(!data_url("https://homebrew.page/api/v1/manifest.json"));
-    assert(!data_url(std::string(catalog::kApiMirror) + "api/v1/index.json"));
+    assert(!data_url("https://prosperostore.net/api/v1/manifest.json"));
+    assert(!data_url(std::string(catalog::kApi) + "index.json"));
 
-    assert(discussion_url(
-        "https://github.com/blackbearreloaded/ps5-homebrew-catalog/discussions/193"));
+    assert(discussion_url("https://github.com/darkxex/ps5-homebrew-catalog/discussions/193"));
     for (const char *url :
          {"", "https://github.com/", "http://github.com/a/b/discussions/1",
           "https://github.com.evil.example/a/b/discussions/1", "https://evil.example/github.com/",
@@ -119,21 +118,21 @@ static void check_requests()
     assert(!net::fetch(social::index_url(), net::Purpose::comments, 100, body, control).ok());
     assert(calls.size() == 1 && body == "old");
     calls.clear();
-    responses = {reply(302, "https://homebrew.page/api/v1/index.json")};
+    responses = {reply(302, "https://prosperostore.net/api/v1/index.json")};
     assert(!net::fetch(social::index_url(), net::Purpose::comments, 100, body, control).ok());
     assert(calls.size() == 1 && body == "old");
     calls.clear();
-    responses = {reply(302, "/blackbearreloaded/ps5-homebrew-catalog/main/README.md")};
+    responses = {reply(302, "/darkxex/ps5-homebrew-catalog/main/README.md")};
     assert(!net::fetch(social::index_url(), net::Purpose::comments, 100, body, control).ok());
     assert(calls.size() == 1);
     calls.clear();
     // Nothing else is ever asked for under this purpose: not even a request is made.
     responses.clear();
     for (const std::string &url :
-         {std::string("https://homebrew.page/api/v1/index.json"),
-          std::string("https://github.com/blackbearreloaded/ps5-homebrew-catalog/discussions/193"),
+         {std::string("https://prosperostore.net/api/v1/index.json"),
+          std::string("https://github.com/darkxex/ps5-homebrew-catalog/discussions/193"),
           std::string(social::kBase) + "v1/apps/../index.json",
-          std::string("https://raw.githubusercontent.com/blackbearreloaded/ps5-homebrew-catalog/"
+          std::string("https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/"
                       "main/apps/PPSA99008.json")})
     {
         const auto response = net::fetch(url, net::Purpose::comments, 100, body, control);
@@ -191,7 +190,7 @@ static void check_index()
     assert(index.size() == 10); // seven as written, three whose values are read as nothing
     assert(index.at("PPSA99008").likes == 41 && index.at("PPSA99008").comments == 37);
     assert(index.at("PPSA99008").url ==
-           "https://github.com/blackbearreloaded/ps5-homebrew-catalog/discussions/193");
+           "https://github.com/darkxex/ps5-homebrew-catalog/discussions/193");
     assert(index.at("PPSA99007").likes == 0 && index.at("PPSA99007").comments == 0);
     // Less than none is none; a part of one is left off; an address that is not GitHub's is
     // dropped while the counts stay.

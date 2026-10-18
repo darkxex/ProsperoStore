@@ -30,7 +30,7 @@ code from features qualified on the console.
 | Artwork | Background loading, persistent cache, bounded PNG decoding, a bounded result queue, one texture upload per frame. Pictures are kept: 160 icons, 12 full-size pictures and 12 QR codes; past that the one longest off screen gives its texture to the new one (about 1 ms on the console). A picture fades in over its placeholder. |
 | Scale | Built for up to a thousand apps: only the rows in view are drawn and asked for, card text is fitted when first drawn, names are folded once for sorting and search. |
 | Search and sorting | Triangle opens the native keyboard; name/developer filtering and R3 sorting by name, newest release, or recently updated. Native keyboard interaction still needs console qualification. |
-| App details | Scrollable verified metadata and release notes, full-size artwork, retry behavior, and a QR code linking to the app's canonical homebrew.page page. |
+| App details | Scrollable verified metadata and release notes, full-size artwork, retry behavior, and a QR code linking to the app's canonical prosperostore.net page. |
 | Installed inventory | Read-only bounded scans using ShadowMountPlus locations/depth, folder metadata parsing, image-file listing, duplicate-title detection, and receipt-based ownership. |
 | Updates view | Newer catalog versions are shown for managed installations, and the app page updates them. |
 | State storage | Persistent store state uses `/data/prosperostore` after elevation: cache, logs, receipts, and development controls. Browsing falls back to memory when elevation is unavailable. Pre-elevation sandbox logging is disabled. |

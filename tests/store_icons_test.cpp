@@ -15,7 +15,7 @@ int main()
     store::catalog::Icons cache(root);
     store::catalog::Entry entry;
     entry.id = "PPSA99000";
-    entry.icon = "https://homebrew.page/icons/PPSA99000.png";
+    entry.icon = "https://prosperostore.net/icons/PPSA99000.png";
     entry.icon_hash = "revision-one";
     const auto key = store::catalog::Icons::key(entry);
     assert(key.size() == 64 && key.find('/') == std::string::npos);
@@ -41,7 +41,7 @@ int main()
     assert(!store::catalog::Icons::key(entry).empty() && cache.store(entry, encoded, image));
     entry.icon = "http://example.com/icon.png";
     assert(store::catalog::Icons::key(entry).empty() && !cache.store(entry, encoded, image));
-    entry.icon = "https://homebrew.page/icon.png";
+    entry.icon = "https://prosperostore.net/icon.png";
     entry.id = "../PPSA99000";
     assert(store::catalog::Icons::key(entry).empty());
     std::filesystem::remove_all(root);

@@ -26,7 +26,7 @@ comes from a run and has an attestation. The publish step handles three cases:
 - **A release without a ZIP** (notes written in advance, or a draft): it adds the two files
   and leaves the title and notes alone.
 - **A release that already has a ZIP:** nothing is replaced or deleted, because the catalog
-  at homebrew.page records each release ZIP's checksum and the store refuses a file that
+  at prosperostore.net records each release ZIP's checksum and the store refuses a file that
   differs. The run ends green with a warning that those files were not published by it and
   may have no attestation.
 

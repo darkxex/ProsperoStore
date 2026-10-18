@@ -20,7 +20,7 @@ int main()
     assert(!update_available("unknown", "01.000.000"));
     assert(!update_available("1.000.000", "01.000.000"));
     assert(sha256("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-    assert(api_url("https://homebrew.page/api/v1/index.json"));
+    assert(api_url("https://prosperostore.net/api/v1/index.json"));
     std::string base = "unchanged";
     assert(normalize_api(" https://dev.example:8443/api/v1 ", base));
     assert(base == "https://dev.example:8443/api/v1/");
@@ -35,19 +35,12 @@ int main()
         assert(base == kDefaultApi);
     }
     assert(!normalize_api("https://dev.example/" + std::string(512, 'a'), base));
-    // The mirror is one path on a shared host: nothing else on that host is the catalog.
-    assert(
-        official_url("https://blackbearreloaded.github.io/ps5-homebrew-catalog/api/v1/index.json"));
-    assert(official_url("https://blackbearreloaded.github.io/ps5-homebrew-catalog/api/v1/icons/"
-                        "PPSA99000.png?v=0f"));
-    for (const char *url :
-         {"https://blackbearreloaded.github.io/",
-          "https://blackbearreloaded.github.io/other-repo/api/v1/index.json",
-          "https://someone-else.github.io/ps5-homebrew-catalog/api/v1/index.json",
-          "https://blackbearreloaded.github.io/ps5-homebrew-catalog/../x/index.json",
-          "https://blackbearreloaded.github.io/ps5-homebrew-catalog/%2e%2e/x",
-          "https://blackbearreloaded.github.io.evil.example/ps5-homebrew-catalog/a",
-          "http://blackbearreloaded.github.io/ps5-homebrew-catalog/api/v1/index.json"})
+    // The catalog's one home; no other host is the official catalog.
+    assert(official_url("https://prosperostore.net/api/v1/index.json"));
+    assert(official_url("https://prosperostore.net/api/v1/icons/PPSA99000.png?v=0f"));
+    for (const char *url : {"https://darkxex.github.io/ps5-homebrew-catalog/api/v1/index.json",
+                            "https://prosperostore.net.evil.example/api/v1/index.json",
+                            "https://old-catalog.example/api/v1/index.json"})
         assert(!official_url(url));
     assert(artifact_url("https://github.com/owner/repo/releases/download/v1/a.zip"));
     assert(!artifact_url("https://release-assets.githubusercontent.com/a"));
@@ -68,9 +61,9 @@ int main()
     assert(entries.size() == 1); // Failed refresh never replaces the last good catalog.
     Entry detail;
     const std::string full_icon =
-        R"({"schema":3,"titleid":"PPSA99000","name":"Store","kind":"app","status":"coming_soon","icon":"https://homebrew.page/icons/PPSA99000.png"})";
+        R"({"schema":3,"titleid":"PPSA99000","name":"Store","kind":"app","status":"coming_soon","icon":"https://prosperostore.net/icons/PPSA99000.png"})";
     assert(parse_detail(full_icon, "PPSA99000", detail, error));
-    assert(detail.large_icon == "https://homebrew.page/icons/PPSA99000.png");
+    assert(detail.large_icon == "https://prosperostore.net/icons/PPSA99000.png");
     // Safety facts: read when present, ignored when unknown, never a reason to refuse an app.
     assert(detail.sandbox.empty() && detail.build.empty() && detail.helpers == 0);
     const std::string with_safety =
@@ -102,7 +95,7 @@ int main()
     assert(sorted[0].category == "emulators" && sorted[1].category.empty() &&
            sorted[2].category.empty());
     auto bad_icon = full_icon;
-    bad_icon.replace(bad_icon.find("https://homebrew.page"), 21, "https://untrusted.example");
+    bad_icon.replace(bad_icon.find("https://prosperostore.net"), 21, "https://untrusted.example");
     assert(parse_detail(bad_icon, "PPSA99000", detail, error)); // Custom HTTPS icon host.
     bad_icon.replace(bad_icon.find("https://"), 8, "http://");
     assert(!parse_detail(bad_icon, "PPSA99000", detail, error));

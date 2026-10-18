@@ -19,7 +19,7 @@ namespace store::diag
 namespace
 {
 constexpr const char *kCa = "/system/common/cert/CA_LIST.cer";
-constexpr const char *kUrl = "https://homebrew.page/api/v1/manifest.json";
+constexpr const char *kUrl = "https://prosperostore.net/api/v1/manifest.json";
 
 std::string error_text()
 {
@@ -62,8 +62,8 @@ void probe_pieces(const char *when)
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     addrinfo *found = nullptr;
-    const int resolved = getaddrinfo("homebrew.page", "443", &hints, &found);
-    trace("[%s] curl: getaddrinfo homebrew.page = %d (%s)", when, resolved,
+    const int resolved = getaddrinfo("prosperostore.net", "443", &hints, &found);
+    trace("[%s] curl: getaddrinfo prosperostore.net = %d (%s)", when, resolved,
           resolved == 0 ? "ok" : gai_strerror(resolved));
     if (found)
         freeaddrinfo(found);

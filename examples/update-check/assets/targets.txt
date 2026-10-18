@@ -2,7 +2,7 @@
 # content version to pretend is installed. Lines of any other shape are ignored.
 #
 # These exercise each answer the catalog can give. The apps named here are
-# listed on homebrew.page; what the catalog says about them changes over time.
+# listed on prosperostore.net; what the catalog says about them changes over time.
 #
 # A listed app, as if an old copy were installed: update available.
 PPSA99002 01.000.000

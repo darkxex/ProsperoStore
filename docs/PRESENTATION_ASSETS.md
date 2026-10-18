@@ -20,8 +20,8 @@ committed to your repository:
 | `sce_sys/background-source.png`, `launch-background-source.png` | Nothing: the editable sources of the two backgrounds | PNG | Optional; never deployed |
 
 Following this layout is what makes an app conformant with the
-[ps5-homebrew-catalog](https://github.com/blackbearreloaded/ps5-homebrew-catalog), the catalog behind
-[homebrew.page](https://homebrew.page): its automation looks for these files
+[ps5-homebrew-catalog](https://github.com/darkxex/ps5-homebrew-catalog), the catalog behind
+[prosperostore.net](https://prosperostore.net): its automation looks for these files
 at these paths. It is a recommendation for every app, not only for apps built
 from this template:
 
@@ -29,7 +29,7 @@ from this template:
   their formats; the tools in this document write them there.
 - Committing them, rather than producing them only during a build, lets
   catalogs and stores read them straight from the repository at a release
-  tag. The [homebrew.page](https://homebrew.page) catalog reads
+  tag. The [prosperostore.net](https://prosperostore.net) catalog reads
   `sce_sys/icon0.png` for the listing's icon and `contentVersion` from
   `sce_sys/param.json` to tell consoles when an update exists; it never
   downloads the release to find them.

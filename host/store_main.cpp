@@ -543,7 +543,7 @@ static void check_catalog_settings()
 static void check_likes_and_comments()
 {
     using namespace store;
-    const std::string base = "https://github.com/blackbearreloaded/ps5-homebrew-catalog/discussions/";
+    const std::string base = "https://github.com/darkxex/ps5-homebrew-catalog/discussions/";
     // On unless the settings file says otherwise, and switching it off survives that file.
     assert(parse_settings("").show_comments && !parse_settings("show_comments=yes\n").show_comments);
     Settings chosen;
@@ -912,7 +912,7 @@ int main(int argc, char **argv)
                 assert(screen.open_app(id));
                 screen.pending_detail.clear();
                 hui::Image qr;
-                assert(hui::encode_qr("https://homebrew.page/app/" + id + "/", qr));
+                assert(hui::encode_qr("https://prosperostore.net/app/" + id + "/", qr));
                 const auto texture =
                     renderer.batch().create_texture(qr.width, qr.height, qr.rgba.data());
                 textures.push_back(texture);
@@ -1002,7 +1002,7 @@ int main(int argc, char **argv)
                         return 9;
                     screen.pending_detail.clear();
                     hui::Image qr;
-                    assert(hui::encode_qr("https://homebrew.page/app/" + id + "/", qr));
+                    assert(hui::encode_qr("https://prosperostore.net/app/" + id + "/", qr));
                     textures.push_back(
                         renderer.batch().create_texture(qr.width, qr.height, qr.rgba.data()));
                     screen.set_qr(id, textures.back(), qr.width);
@@ -1035,7 +1035,7 @@ int main(int argc, char **argv)
                 assert(screen.open_app("PPSA99169"));
                 screen.pending_detail.clear();
                 hui::Image qr;
-                assert(hui::encode_qr("https://homebrew.page/app/PPSA99169/", qr));
+                assert(hui::encode_qr("https://prosperostore.net/app/PPSA99169/", qr));
                 const auto texture =
                     renderer.batch().create_texture(qr.width, qr.height, qr.rgba.data());
                 textures.push_back(texture);
@@ -1073,7 +1073,7 @@ int main(int argc, char **argv)
                       "Developer pages, a News room and a shelf for apps new to the catalog.\n\n"
                       "Open an app and press R3 to see everything else its developer made."},
                      {"2026-10-08-mirror", "2026-10-08T18:00:00Z", "The catalog has a mirror",
-                      "When homebrew.page can't be reached, the store now reads the same signed "
+                      "When prosperostore.net can't be reached, the store now reads the same signed "
                       "catalog from its mirror."}});
                 screen.open_panel(3);
                 settle(60);
@@ -1155,7 +1155,7 @@ int main(int argc, char **argv)
             }
             else if (mode == "notice")
                 screen.notify("Update available: 01.000.010",
-                              "A newer ProsperoStore is listed on homebrew.page.");
+                              "A newer ProsperoStore is listed on prosperostore.net.");
             else if (mode == "scrolled" || mode == "coming-soon")
             {
                 hui::InputFrame move;
@@ -1246,7 +1246,7 @@ int main(int argc, char **argv)
                     assert(client.detail(snapshot, screen.pending_detail, entry, control, error));
                     screen.set_detail(entry);
                     hui::Image qr;
-                    assert(hui::encode_qr("https://homebrew.page/app/" + entry.id + "/", qr));
+                    assert(hui::encode_qr("https://prosperostore.net/app/" + entry.id + "/", qr));
                     const auto texture =
                         renderer.batch().create_texture(qr.width, qr.height, qr.rgba.data());
                     assert(texture);

@@ -293,7 +293,7 @@ void publish(World &w, const std::string &version, const std::string &archive, u
                  "\"sha256\":\"" +
                  digest_of(archive) + "\",\"status\":\"available\",\"content_version\":\"" +
                  version + "\",\"format\":\"zip\",\"size\":" + std::to_string(archive.size()) +
-                 ",\"page\":\"https://homebrew.page/app/PPSA12345/\"}";
+                 ",\"page\":\"https://prosperostore.net/app/PPSA12345/\"}";
     w.manifest = std::string("{\"commit\":\"abc\",\"files\":{\"apps/") + title + ".json\":\"" +
                  digest_of(w.app_file) + "\",\"index.json\":\"" + std::string(64, '0') +
                  "\"},\"schema\":3,\"sequence\":" + std::to_string(sequence) + "}";

@@ -5,7 +5,7 @@
 <h1 align="center">ProsperoStore</h1>
 
 <p align="center">
-  <strong>The native PS5 app store for <a href="https://homebrew.page">homebrew.page</a></strong>
+  <strong>The native PS5 app store for <a href="https://prosperostore.net">prosperostore.net</a></strong>
 </p>
 
 <p align="center">
@@ -13,8 +13,8 @@
 </p>
 
 > [!TIP]
-> **By default, ProsperoStore uses [homebrew.page](https://homebrew.page)**, the community
-> catalog of PS5 homebrew. Browse it on the web at **[homebrew.page](https://homebrew.page)**, then
+> **By default, ProsperoStore uses [prosperostore.net](https://prosperostore.net)**, the community
+> catalog of PS5 homebrew. Browse it on the web at **[prosperostore.net](https://prosperostore.net)**, then
 > install from the console with one button. The catalog is signed, and every download is checked
 > against it before anything touches your console.
 
@@ -22,7 +22,7 @@
 > **ProsperoStore is an aggregator.** It lists and installs apps; it doesn't build, maintain or
 > support them. Each app belongs to its own developer. For a bug, a question or a feature request
 > about an app, go to that app's GitHub repository (the QR code on its page in the store opens its
-> page on [homebrew.page](https://homebrew.page), which links to the source) and contact its
+> page on [prosperostore.net](https://prosperostore.net), which links to the source) and contact its
 > developer there. Issues here are for the store itself: browsing, installing, updating and
 > uninstalling.
 
@@ -32,7 +32,7 @@
 
 ProsperoStore is a homebrew app store that runs natively on the PS5. Title ID `PPSA99000`.
 It is an alpha; the current version is the newest one on the
-[releases page](https://github.com/blackbearreloaded/ProsperoStore/releases).
+[releases page](https://github.com/darkxex/ProsperoStore/releases).
 
 > [!WARNING]
 > **ProsperoStore includes an exact-title one-shot helper built from upstream
@@ -46,7 +46,7 @@ It is an alpha; the current version is the newest one on the
 
 ## Features
 
-- **The whole [homebrew.page](https://homebrew.page) catalog** - Discover shows one app big over
+- **The whole [prosperostore.net](https://prosperostore.net) catalog** - Discover shows one app big over
   shelves (New and updated, Apps, Games, Tools, Coming soon, On this console); each section has its
   own grid, with search by name or developer and sorting by name, release or update.
 - **Likes and comments** - switched on in **Settings**, every tile shows the app's likes and
@@ -74,7 +74,7 @@ It is an alpha; the current version is the newest one on the
   opening animation, background music, interface sounds and springy motion. **Reduce motion** is
   in **Settings**.
 - **Keyboard support** - a USB keyboard works as well as the controller; see [Controls](#controls).
-- **A QR code on every app's page** - opens the app's page on homebrew.page, with its release
+- **A QR code on every app's page** - opens the app's page on prosperostore.net, with its release
   notes and source.
 
 ## Install
@@ -161,7 +161,7 @@ console test harness.
 
 ## Updating ProsperoStore
 
-When [homebrew.page](https://homebrew.page) lists a newer ProsperoStore, the store asks when it
+When [prosperostore.net](https://prosperostore.net) lists a newer ProsperoStore, the store asks when it
 opens: **Update now**, **What's new** (the release notes) or **Skip**. The store's own page
 (**Settings > ProsperoStore**) offers the update too. It downloads and unpacks like any app; then
 the store closes, a small helper started through the payload loader puts the new files in place,
@@ -174,7 +174,7 @@ about permissions under [Install](#install).
 
 ## Likes and comments
 
-Every app in the catalog has a discussion on GitHub, the same one its page on homebrew.page
+Every app in the catalog has a discussion on GitHub, the same one its page on prosperostore.net
 shows: the replies are the app's comments, and the upvotes of the discussion are its likes.
 
 They are on from the first start; **Settings → Show likes and comments** switches them off.
@@ -191,7 +191,7 @@ While the switch is off the store asks GitHub for nothing and shows none of it. 
   account; the store itself never writes anything.
 
 The store reads two kinds of file for this, from one address only:
-`https://raw.githubusercontent.com/blackbearreloaded/ps5-homebrew-catalog/comments-data/`, the
+`https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/comments-data/`, the
 counts of every app when the catalog is refreshed and one app's comments when its page opens.
 These files are not part of the signed catalog and decide nothing about what is installed. What
 they hold is shown as plain text, cut to length, and the only address taken from them is the
@@ -221,10 +221,10 @@ it is on, the store starts a little slower.
 
 **Settings → Development options** has two switches, one for each source:
 
-- **Official catalog** - homebrew.page, always signature-checked. On by default.
+- **Official catalog** - prosperostore.net, always signature-checked. On by default.
 - **Custom catalog** - your own feed. Switching it on asks for its address when none is set.
 
-With both on, the custom catalog's apps are added to homebrew.page's and carry a "Custom catalog"
+With both on, the custom catalog's apps are added to prosperostore.net's and carry a "Custom catalog"
 mark on their page. Where both list the same title ID, the official app is the one shown, and the
 store says how many custom apps were hidden. With only the custom catalog on, it replaces the
 official one, which is what you want to test a new version of an app that is already listed. The
@@ -233,7 +233,7 @@ use.
 
 **Custom catalog URL** is the HTTPS directory containing the feed, for example
 `https://example.com/api/v1/`: the API directory, not the website homepage, a GitHub repository
-URL or `index.json`. **Restore official catalog** goes back to homebrew.page alone. Changes are
+URL or `index.json`. **Restore official catalog** goes back to prosperostore.net alone. Changes are
 saved at once and apply when you close and reopen ProsperoStore.
 
 **Verify custom catalog signatures** is on by default and uses the official catalog's built-in
@@ -242,7 +242,7 @@ you can turn it off after confirming the warning; the store then labels the cata
 not checked**. Only do this with a publisher you trust: hashes detect changed downloads, but an
 unchecked publisher controls both the download address and its expected hash.
 
-Custom feeds must implement the [catalog API](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/api.md):
+Custom feeds must implement the [catalog API](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/api.md):
 schema-3 `manifest.json`, `index.json`, `versions.json`, and `apps/<TITLEID>.json`.
 The manifest must list the SHA-256 of each API JSON file. `manifest.sig` is required
 only while signature verification is on. API-file hashes, artifact hashes, ZIP
@@ -259,7 +259,7 @@ the selected catalog, and app QR codes use its `page` URLs.
 ## Roadmap
 
 Ideas for what a solid app store should do, in no promised order. Some need changes to the
-[catalog](https://github.com/blackbearreloaded/ps5-homebrew-catalog) as well as to the store.
+[catalog](https://github.com/darkxex/ps5-homebrew-catalog) as well as to the store.
 
 ### Versions and updates
 
@@ -340,14 +340,14 @@ host previews and checks in `host/` and `tests/`. Build on Linux (WSL works) wit
 number and commit: see [Pull-request builds](docs/PULL_REQUEST_BUILDS.md). [IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md) records
 what was built and how it was verified on consoles, and [PLAN.md](PLAN.md) the design and
 decisions. `FOUNDATIONS.json` pins the foundation sources, and `third_party/STORE_SOURCES.json` the
-vendored libraries. The store reads the catalog API at `https://homebrew.page/api/v1/`, specified
-in [the catalog's `docs/api.md`](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/api.md).
+vendored libraries. The store reads the catalog API at `https://prosperostore.net/api/v1/`, specified
+in [the catalog's `docs/api.md`](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/api.md).
 
 ## Project foundation
 
 > [!IMPORTANT]
-> **The catalog is [homebrew.page](https://homebrew.page)**, built from
-> [ps5-homebrew-catalog](https://github.com/blackbearreloaded/ps5-homebrew-catalog). Developers list
+> **The catalog is [prosperostore.net](https://prosperostore.net)**, built from
+> [ps5-homebrew-catalog](https://github.com/darkxex/ps5-homebrew-catalog). Developers list
 > their apps there, and ProsperoStore installs what it lists.
 
 > [!IMPORTANT]

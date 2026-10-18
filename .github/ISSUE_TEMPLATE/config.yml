@@ -4,5 +4,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Problem with a listed app or its listing
-    url: https://github.com/blackbearreloaded/ps5-homebrew-catalog/issues/new/choose
+    url: https://github.com/darkxex/ps5-homebrew-catalog/issues/new/choose
     about: Wrong details, a broken download or an unsafe app in the catalog

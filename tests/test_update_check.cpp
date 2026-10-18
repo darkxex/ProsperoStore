@@ -28,7 +28,7 @@ void check(bool condition, const char *what, int line)
 }
 #define CHECK(condition) check((condition), #condition, __LINE__)
 
-// A real answer of https://homebrew.page/api/v1/apps/PPSA99039.json (schema 3), reformatted.
+// A real answer of https://prosperostore.net/api/v1/apps/PPSA99039.json (schema 3), reformatted.
 const std::string listed = R"({
   "schema": 3,
   "titleid": "PPSA99039",
@@ -52,18 +52,18 @@ const std::string listed = R"({
   "prerelease": false,
   "release_url": "https://github.com/sainsaji/EVO-PLAYER-PS5/releases/tag/v0.10.0",
   "updated": "2026-09-29T17:20:37Z",
-  "page": "https://homebrew.page/app/PPSA99039/",
-  "icon": "https://homebrew.page/api/v1/icons/PPSA99039.png",
-  "icon_small": "https://homebrew.page/api/v1/icons/PPSA99039-256.png",
+  "page": "https://prosperostore.net/app/PPSA99039/",
+  "icon": "https://prosperostore.net/api/v1/icons/PPSA99039.png",
+  "icon_small": "https://prosperostore.net/api/v1/icons/PPSA99039-256.png",
   "icon_hash": "5b0c1e7a9d3f4a26"
 })";
 
 const std::string reservation =
     R"({"schema":3,"titleid":"PPSA99009","name":"ProsperoLichess","version":null,)"
-    R"("status":"coming_soon","content_version":null,"page":"https://homebrew.page/app/PPSA99009/"})";
+    R"("status":"coming_soon","content_version":null,"page":"https://prosperostore.net/app/PPSA99009/"})";
 
 const std::string unversioned =
-    R"({"status":"available","version":"0.9","content_version":null,"page":"https://homebrew.page/app/PPSA99420/"})";
+    R"({"status":"available","version":"0.9","content_version":null,"page":"https://prosperostore.net/app/PPSA99420/"})";
 
 update_check_result evaluate(const std::string &json, const char *installed)
 {
@@ -94,15 +94,15 @@ void test_versions()
 void test_url()
 {
     char url[96];
-    CHECK(update_check_url(url, sizeof(url), "PPSA99039") == 48);
-    CHECK(std::strcmp(url, "https://homebrew.page/api/v1/apps/PPSA99039.json") == 0);
+    CHECK(update_check_url(url, sizeof(url), "PPSA99039") == 52);
+    CHECK(std::strcmp(url, "https://prosperostore.net/api/v1/apps/PPSA99039.json") == 0);
     // Nothing but a title ID ever becomes part of the address.
     for (const char *bad :
          {"", "PPSA9903", "PPSA990390", "ppsa99039", "PPSA9903/", "../../x.j", "PPSA9903?"})
         CHECK(update_check_url(url, sizeof(url), bad) == 0);
     CHECK(update_check_url(url, sizeof(url), nullptr) == 0);
-    CHECK(update_check_url(url, 48, "PPSA99039") == 0);
-    CHECK(update_check_url(url, 49, "PPSA99039") == 48);
+    CHECK(update_check_url(url, 52, "PPSA99039") == 0);
+    CHECK(update_check_url(url, 53, "PPSA99039") == 52);
 }
 
 int read(const std::string &json, const char *key, char *out, std::size_t size)
@@ -159,7 +159,7 @@ void test_evaluate()
     CHECK(std::strcmp(result.available, "01.000.001") == 0);
     CHECK(std::strcmp(result.installed, "01.000.000") == 0);
     CHECK(std::strcmp(result.version, "0.10.0") == 0);
-    CHECK(std::strcmp(result.page, "https://homebrew.page/app/PPSA99039/") == 0);
+    CHECK(std::strcmp(result.page, "https://prosperostore.net/app/PPSA99039/") == 0);
 
     CHECK(evaluate(listed, "01.000.001").state == UPDATE_CHECK_UP_TO_DATE);
     // A copy newer than the listing (a development build) is not offered a downgrade.
@@ -227,7 +227,7 @@ void test_run()
     server.body = listed;
     auto result = run("PPSA99039", "01.000.000");
     CHECK(result.state == UPDATE_CHECK_AVAILABLE && result.http_status == 200);
-    CHECK(server.url == "https://homebrew.page/api/v1/apps/PPSA99039.json");
+    CHECK(server.url == "https://prosperostore.net/api/v1/apps/PPSA99039.json");
     CHECK(server.agent == "homebrew-update-check/1 (PPSA99039)");
 
     server.status = 404;

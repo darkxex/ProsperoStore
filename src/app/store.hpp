@@ -80,7 +80,7 @@ struct Settings
     bool debug_log = false;
     std::string catalog_url = catalog::kDefaultApi;
     // The two sources, each switched on or off by itself in Development options. Both on:
-    // the custom catalog's apps are added to homebrew.page's. Never both off.
+    // the custom catalog's apps are added to prosperostore.net's. Never both off.
     bool use_official = true;
     bool use_custom = false;
     // The custom catalog is in use: switched on, and its address is not the official one.

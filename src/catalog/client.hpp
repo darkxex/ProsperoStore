@@ -56,8 +56,6 @@ class Client
         if (!cache_.empty() && (api_ != kDefaultApi || !verify_))
             cache_ += "-" + sha256(api_ + (verify_ ? "\nsigned" : "\nunsigned"));
         origins_.push_back(api_);
-        if (api_ == kDefaultApi && verify_)
-            origins_.push_back(std::string(kApiMirror) + "api/v1/");
     }
     bool cached(Snapshot &out, std::string &error);
     bool refresh(Snapshot &out, net::Control &control, std::string &error);

@@ -18,7 +18,7 @@ namespace store::social
 {
 // The one place these files are read from, and the two shapes a file's address can have.
 inline constexpr std::string_view kBase =
-    "https://raw.githubusercontent.com/blackbearreloaded/ps5-homebrew-catalog/comments-data/";
+    "https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/comments-data/";
 inline constexpr std::string_view kDiscussions = "https://github.com/";
 constexpr std::size_t kIndexLimit = 1024 * 1024;
 constexpr std::size_t kThreadLimit = 64 * 1024;

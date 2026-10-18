@@ -1,6 +1,6 @@
 # Update check
 
-An app listed on [homebrew.page](https://homebrew.page) can tell its user that
+An app listed on [prosperostore.net](https://prosperostore.net) can tell its user that
 a newer release exists. This optional example is that check: two files you
 copy into your project, and a small title that exercises them on a console.
 
@@ -42,14 +42,14 @@ does the same for values you pass.
 
 | `result.state` | Meaning | What to do |
 | --- | --- | --- |
-| `UPDATE_CHECK_AVAILABLE` | The catalog lists a higher content version | Tell the user. `result.version` is the release's name, `result.page` its page on homebrew.page. |
+| `UPDATE_CHECK_AVAILABLE` | The catalog lists a higher content version | Tell the user. `result.version` is the release's name, `result.page` its page on prosperostore.net. |
 | `UPDATE_CHECK_UP_TO_DATE` | The catalog has nothing newer | Nothing. |
 | `UPDATE_CHECK_UNKNOWN` | No answer, or one that can't be used | Nothing. `result.reason` says why, for your log. |
 
 The check is for apps that are **listed in the catalog**. Before your app is
 listed, its title ID isn't known there and every check answers "not listed",
 which is `UPDATE_CHECK_UNKNOWN`. To get listed, see the catalog's
-[submission guide](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/submitting.md).
+[submission guide](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/submitting.md).
 
 Rules that keep it harmless:
 
@@ -75,11 +75,11 @@ the one in the running app. So:
   your release tag.
 
 The catalog's
-[App versions](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/versioning.md)
+[App versions](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/versioning.md)
 page has the full rules, and its
-[Store API](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/api.md)
+[Store API](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/api.md)
 page specifies the file this check reads
-(`https://homebrew.page/api/v1/apps/<TITLEID>.json`).
+(`https://prosperostore.net/api/v1/apps/<TITLEID>.json`).
 
 ## How it works
 
@@ -115,7 +115,7 @@ then reports each answer three ways:
 - one notification with the number of requests answered.
 
 ```text
-UPDATE-CHECK: PPSA99002 installed=01.000.000 state=update-available reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://homebrew.page/app/PPSA99002/ ms=412
+UPDATE-CHECK: PPSA99002 installed=01.000.000 state=update-available reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://prosperostore.net/app/PPSA99002/ ms=412
 ```
 
 The example's own title ID isn't in the catalog, so its self check answers
@@ -158,10 +158,10 @@ All five requests were answered over HTTPS with certificate verification on,
 through the title's own sandbox with no elevation:
 
 ```text
-UPDATE-CHECK: start tag=c2 host=homebrew.page
+UPDATE-CHECK: start tag=c2 host=prosperostore.net
 UPDATE-CHECK: self installed=01.000.000 state=unknown reason=not-listed http=404 error=0x00000000 available=- version=- page=- ms=154
-UPDATE-CHECK: PPSA99002 installed=01.000.000 state=update-available reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://homebrew.page/app/PPSA99002/ ms=109
-UPDATE-CHECK: PPSA99002 installed=99.999.999 state=up-to-date reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://homebrew.page/app/PPSA99002/ ms=94
+UPDATE-CHECK: PPSA99002 installed=01.000.000 state=update-available reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://prosperostore.net/app/PPSA99002/ ms=109
+UPDATE-CHECK: PPSA99002 installed=99.999.999 state=up-to-date reason=ok http=200 error=0x00000000 available=01.000.070 version=01.000.070 page=https://prosperostore.net/app/PPSA99002/ ms=94
 UPDATE-CHECK: PPSA99009 installed=01.000.000 state=unknown reason=not-available http=200 error=0x00000000 available=- version=- page=- ms=71
 UPDATE-CHECK: PPSA00000 installed=01.000.000 state=unknown reason=not-listed http=404 error=0x00000000 available=- version=- page=- ms=90
 UPDATE-CHECK: done requests=5 answered=5

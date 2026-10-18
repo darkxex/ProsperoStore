@@ -36,8 +36,8 @@ int sceNetResolverDestroy(int resolver)
 int sceNetResolverStartNtoa(int resolver, const char *name, struct in_addr *out, int timeout,
                             int retries, int flags)
 {
-    assert(resolver == 20 && !strcmp(name, "homebrew.page") && timeout == 5000000 && retries == 2 &&
-           flags == 0);
+    assert(resolver == 20 && !strcmp(name, "prosperostore.net") && timeout == 5000000 &&
+           retries == 2 && flags == 0);
     ++lookups;
     assert(inet_pton(AF_INET, "192.0.2.1", out) == 1);
     return fail ? -1 : 0;
@@ -49,15 +49,16 @@ int main(void)
     assert(curl_test_getaddrinfo("192.0.2.1", "443", &hints, &out) == 0);
     assert(ntohs(((struct sockaddr_in *)out->ai_addr)->sin_port) == 443 && lookups == 0);
     curl_test_freeaddrinfo(out);
-    assert(curl_test_getaddrinfo("homebrew.page", "70000", &hints, &out) == EAI_SERVICE && !out);
-    assert(curl_test_getaddrinfo("homebrew.page", "443", &hints, &out) == 0);
+    assert(curl_test_getaddrinfo("prosperostore.net", "70000", &hints, &out) == EAI_SERVICE &&
+           !out);
+    assert(curl_test_getaddrinfo("prosperostore.net", "443", &hints, &out) == 0);
     curl_test_freeaddrinfo(out);
     assert(lookups == 1 && pools == 0 && resolvers == 0);
     fail = 1;
-    assert(curl_test_getaddrinfo("homebrew.page", "443", &hints, &out) == EAI_NONAME && !out);
+    assert(curl_test_getaddrinfo("prosperostore.net", "443", &hints, &out) == EAI_NONAME && !out);
     assert(pools == 0 && resolvers == 0);
     hints.ai_flags = AI_NUMERICHOST;
-    assert(curl_test_getaddrinfo("homebrew.page", "443", &hints, &out) == EAI_NONAME);
+    assert(curl_test_getaddrinfo("prosperostore.net", "443", &hints, &out) == EAI_NONAME);
     hints.ai_family = AF_INET6;
     assert(curl_test_getaddrinfo("::1", "443", &hints, &out) == EAI_FAMILY);
 }

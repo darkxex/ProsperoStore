@@ -27,6 +27,6 @@ void trace_firmware();
 // The checks a report needs, before and after elevation (or when the log is switched on
 // later): the app's folder, /data access, the payload loader on port 9021.
 void trace_console(const char *when);
-// One HEAD request to homebrew.page through libcurl, with every step curl reports.
+// One HEAD request to prosperostore.net through libcurl, with every step curl reports.
 void curl_probe(const char *when);
 } // namespace store::diag

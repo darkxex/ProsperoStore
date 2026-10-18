@@ -1980,7 +1980,7 @@ void Screen::draw_top_bar(const ui::Fonts &fonts)
     const float x = kMargin + 42.0f + brand + 20.0f;
     list.rounded_rect({x, kTopY - 11.0f, 1.5f, 22.0f}, 0, kInk.with_alpha(0.25f));
     ui::text(list, fonts.semibold,
-             active_catalog_url_ == catalog::kDefaultApi ? "homebrew.page"
+             active_catalog_url_ == catalog::kDefaultApi ? "prosperostore.net"
              : active_with_official_                     ? "Two catalogs"
                                                          : "Custom catalog",
              x + 20.0f, centred(kTopY, 20), 20, kAccent.with_alpha(0.92f));
@@ -3370,7 +3370,7 @@ void Screen::draw_intro(const ui::Fonts &fonts)
                  kInk.with_alpha(name), gfx::Align::center, tween::lerp(26.0f, 11.0f, name));
     const float source = still ? 1.0f : tween::smoothstep((t - 0.8f) / 0.5f);
     if (source > 0.0f)
-        ui::text(list, fonts.semibold, "homebrew.page", cx, centred(716.0f, 24), 24,
+        ui::text(list, fonts.semibold, "prosperostore.net", cx, centred(716.0f, 24), 24,
                  gold.with_alpha(0.92f * source), gfx::Align::center, 2.0f);
     // A longer wait says what it is waiting for, with a line of light running along a track.
     const float waiting = tween::smoothstep((t - 2.2f) / 0.5f);
@@ -3632,7 +3632,7 @@ void Screen::set_catalog_url(std::string_view value)
     {
         // The official address is the Official catalog switch, not a custom catalog.
         notify("That is the official catalog",
-               "Enter your own feed's address. homebrew.page has its own switch.");
+               "Enter your own feed's address. prosperostore.net has its own switch.");
         return catalog_url_cancelled();
     }
     settings_.catalog_url = std::move(url);
@@ -3906,7 +3906,7 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
         {
             notify("Switch a custom catalog on first",
                    "The store needs one catalog: set a custom catalog before switching "
-                   "homebrew.page off.");
+                   "prosperostore.net off.");
             return refuse(feedback, input.nav_repeat, 0.0f, 0.0f);
         }
         settings_.use_official = !settings_.use_official;
@@ -4267,8 +4267,9 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
             {6, "Vibration", "A light answer from the controller.", 1, "", settings_.vibration},
             {8, "Reduce motion", "Nothing drifts, floats or slides; things fade instead.", 1, "",
              settings_.reduce_motion},
-            {4, "Official catalog", "homebrew.page, signed. With both on, its apps win a clash.", 1,
-             "", settings_.use_official},
+            {4, "Official catalog",
+             "prosperostore.net, signed. With both on, its apps win a clash.", 1, "",
+             settings_.use_official},
             {4, "Custom catalog", "Your own feed. With both on, its apps are added.", 1, "",
              settings_.use_custom},
             {4, "Custom catalog URL", "HTTPS API directory. Applies when the store next opens.", 3,
@@ -4279,7 +4280,7 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
              "The official catalog is always checked. Applies next launch.", 1, "",
              settings_.verify_signatures},
             {4, "Restore official catalog",
-             "Only homebrew.page, with signature checks, next launch.", 2, "Restore", false},
+             "Only prosperostore.net, with signature checks, next launch.", 2, "Restore", false},
             {7, "ProsperoStore", "Its page updates it.", 2,
              restart_needed_ ? "Restart to finish"
              : newer         ? "Version " + self->available_version + " available"
@@ -4380,8 +4381,8 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
         float words = ui::text(list, fonts.regular, "Apps from ", px + 152.0f, panel.y + 136.0f, 22,
                                kInk.with_alpha(0.62f));
         ui::text(list, fonts.semibold,
-                 active_catalog_url_ == catalog::kDefaultApi ? "homebrew.page"
-                 : active_with_official_ ? "homebrew.page and your custom catalog"
+                 active_catalog_url_ == catalog::kDefaultApi ? "prosperostore.net"
+                 : active_with_official_ ? "prosperostore.net and your custom catalog"
                                          : "your custom catalog",
                  px + 152.0f + words, panel.y + 136.0f, 22, kAccent);
         words = ui::text(list, fonts.regular, "Brought to you by ", px + 152.0f, panel.y + 168.0f,

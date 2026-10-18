@@ -1,5 +1,5 @@
 /*
- * ps5-native-app-boilerplate - Self-update for apps listed on homebrew.page.
+ * ps5-native-app-boilerplate - Self-update for apps listed on prosperostore.net.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -39,7 +39,7 @@ extern "C"
 
 /* The catalog's own site. Its mirror (UPDATE_CHECK_MIRROR_API) is asked when this gives no
  * catalog that verifies; see self_update_check. */
-#define SELF_UPDATE_API "https://homebrew.page/api/v1/"
+#define SELF_UPDATE_API "https://prosperostore.net/api/v1/"
 #define SELF_UPDATE_MAX_MANIFEST (512u * 1024u)
 #define SELF_UPDATE_MAX_APP_FILE 65536u
 /* GitHub's redirect to its release file host carries a signed query of about a thousand
@@ -108,7 +108,7 @@ extern "C"
         char artifact[512]; /* the release ZIP on GitHub */
         char sha256[65];    /* its SHA-256, from the signed catalog */
         uint64_t size;      /* its size in bytes; 0 when the catalog doesn't know */
-        char page[160];     /* the app's page on homebrew.page */
+        char page[160];     /* the app's page on prosperostore.net */
     } self_update_offer;
 
     /* Blocking; call it from a worker thread, once per launch. */

@@ -1,6 +1,6 @@
 # Self-update
 
-An app listed on [homebrew.page](https://homebrew.page) can replace itself
+An app listed on [prosperostore.net](https://prosperostore.net) can replace itself
 with its newest release: it asks its user, downloads the release, and a small
 helper program puts the new version in place once the app has closed. This
 optional example is that feature: an engine you copy into your project, the
@@ -37,7 +37,7 @@ sequenceDiagram
     autonumber
     participant U as User
     participant A as App (sandboxed)
-    participant C as homebrew.page
+    participant C as prosperostore.net
     participant G as GitHub release
     participant L as Payload loader (port 9021)
     participant H as Helper (self-updater.elf)
@@ -171,7 +171,7 @@ steps spelled out.
 
 5. Release as the catalog asks: a `.zip` of the app folder attached to a
    GitHub release, and a higher `contentVersion` in `sce_sys/param.json`
-   ([App versions](https://github.com/blackbearreloaded/ps5-homebrew-catalog/blob/main/docs/versioning.md)).
+   ([App versions](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/versioning.md)).
    The helper is part of that ZIP, so each release carries its own.
 
 ## Examples

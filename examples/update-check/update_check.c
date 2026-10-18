@@ -1,5 +1,5 @@
 /*
- * ps5-native-app-boilerplate - Update check against the homebrew.page catalog.
+ * ps5-native-app-boilerplate - Update check against the prosperostore.net catalog.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  *

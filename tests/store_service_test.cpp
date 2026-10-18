@@ -43,7 +43,7 @@ store::catalog::Snapshot fixture()
     {
         store::catalog::Entry entry;
         entry.id = "PPSA" + std::to_string(99000 + i);
-        entry.icon = "https://homebrew.page/icons/" + entry.id + ".png";
+        entry.icon = "https://prosperostore.net/icons/" + entry.id + ".png";
         entry.icon_hash = "one";
         entry.version = "1.0.10";
         result.versions[entry.id] = "01.000.010";
@@ -96,7 +96,7 @@ bool Client::detail(const Snapshot &, const std::string &id, Entry &entry, net::
     if (id == "PPSA99008")
     {
         entry = fixture().entries[8];
-        entry.page = "https://homebrew.page/app/PPSA99008/";
+        entry.page = "https://prosperostore.net/app/PPSA99008/";
         return true;
     }
     if (id != "PPSA99000")
@@ -105,8 +105,8 @@ bool Client::detail(const Snapshot &, const std::string &id, Entry &entry, net::
         return false;
     }
     entry = fixture().entries.front();
-    entry.large_icon = "https://homebrew.page/full/PPSA99000.png";
-    entry.page = "https://homebrew.page/app/PPSA99000/";
+    entry.large_icon = "https://prosperostore.net/full/PPSA99000.png";
+    entry.page = "https://prosperostore.net/app/PPSA99000/";
     return true;
 }
 bool Client::news(const Snapshot &, std::vector<News> &out, net::Control &, std::string &)
@@ -148,12 +148,12 @@ Response fetch(const std::string &url, Purpose purpose, std::size_t, std::string
         answer.status = 200;
         return answer;
     }
-    if (url == "https://homebrew.page/api/v1/apps/PPSA99000.json")
+    if (url == "https://prosperostore.net/api/v1/apps/PPSA99000.json")
     {
         // The store's own listing, one release ahead of the running build.
         body = R"({"schema":3,"titleid":"PPSA99000","status":"available",)"
                R"("content_version":"01.000.010","version":"1.0.10",)"
-               R"("page":"https://homebrew.page/app/PPSA99000/"})";
+               R"("page":"https://prosperostore.net/app/PPSA99000/"})";
         Response listed;
         listed.status = 200;
         return listed;

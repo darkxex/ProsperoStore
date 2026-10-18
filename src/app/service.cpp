@@ -620,7 +620,7 @@ void Service::run()
 #ifdef STORE_SANDBOX_CONTROL
     std::string probe_body;
     const auto probe =
-        net::fetch("https://homebrew.page/api/v1/manifest.json", net::Purpose::catalog,
+        net::fetch("https://prosperostore.net/api/v1/manifest.json", net::Purpose::catalog,
                    catalog::kVersionsLimit, probe_body, control_);
     hui::sys::log("[STORE] sandbox TLS control status=%d bytes=%zu error=%s", probe.status,
                   probe_body.size(), probe.error.c_str());
@@ -757,7 +757,7 @@ void Service::run()
                 notice.message =
                     std::to_string(clashes.size()) +
                     (clashes.size() == 1 ? " custom app hidden" : " custom apps hidden");
-                notice.detail = "homebrew.page lists the same title ID, and its app is the one "
+                notice.detail = "prosperostore.net lists the same title ID, and its app is the one "
                                 "shown: " +
                                 clashes.front() + (clashes.size() > 1 ? " and others." : ".");
             }

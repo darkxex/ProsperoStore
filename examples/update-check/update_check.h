@@ -1,9 +1,9 @@
 /*
- * ps5-native-app-boilerplate - Update check against the homebrew.page catalog.
+ * ps5-native-app-boilerplate - Update check against the prosperostore.net catalog.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Lets an app listed on https://homebrew.page tell its user that a newer
+ * Lets an app listed on https://prosperostore.net tell its user that a newer
  * release exists. Copy update_check.h, update_check.c, console_curl.h and
  * console_curl.c into your project; they depend on nothing else in this
  * repository.
@@ -25,7 +25,7 @@
  *         show("Update available: %s", result.version);
  *
  * The check is one HTTPS GET of the app's own file in the catalog's store API
- * (https://homebrew.page/api/v1/apps/<TITLEID>.json) and a comparison of its
+ * (https://prosperostore.net/api/v1/apps/<TITLEID>.json) and a comparison of its
  * content_version with the contentVersion of the running app's param.json.
  * It downloads nothing else, installs nothing, and needs no elevation.
  *
@@ -42,12 +42,12 @@ extern "C"
 {
 #endif
 
-#define UPDATE_CHECK_HOST "homebrew.page"
+#define UPDATE_CHECK_HOST "prosperostore.net"
 /* The catalog's store API is published in two places: on its own site, and as a mirror for
  * networks that block that site. They hold the same answers. Each place has its own signed
  * manifest, because icon addresses inside the files name the place they are served from. */
 #define UPDATE_CHECK_API "https://" UPDATE_CHECK_HOST "/api/v1/"
-#define UPDATE_CHECK_MIRROR_API "https://blackbearreloaded.github.io/ps5-homebrew-catalog/api/v1/"
+#define UPDATE_CHECK_MIRROR_API "https://prosperostore.net/api/v1/"
 #define UPDATE_CHECK_ORIGINS 2
 #define UPDATE_CHECK_MAX_RESPONSE 65536u
 
@@ -81,7 +81,7 @@ extern "C"
         char installed[12]; /* the running app's contentVersion */
         char available[12]; /* the catalog's content_version, when known */
         char version[40];   /* the release's name for display, e.g. "0.11.0" */
-        char page[160];     /* the app's page on homebrew.page */
+        char page[160];     /* the app's page on prosperostore.net */
         int origin;         /* which place answered: 0 the catalog's site, 1 its mirror */
     } update_check_result;
 

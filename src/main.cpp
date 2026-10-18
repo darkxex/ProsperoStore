@@ -725,7 +725,7 @@ int main()
                 };
                 if (stat((std::string(storage_root) + "/dev/self.zip").c_str(), &archive) == 0)
                     entry.size = static_cast<std::uint64_t>(archive.st_size);
-                entry.artifact = "https://github.com/blackbearreloaded/ProsperoStore/releases/"
+                entry.artifact = "https://github.com/darkxex/ProsperoStore/releases/"
                                  "download/dev/PPSA99000.zip";
                 // Or a real release on GitHub: its address and size in dev/self.url and
                 // dev/self.size, downloaded through the store's transport like any release.

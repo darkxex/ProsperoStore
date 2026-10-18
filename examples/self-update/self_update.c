@@ -1,5 +1,5 @@
 /*
- * ps5-native-app-boilerplate - Self-update for apps listed on homebrew.page.
+ * ps5-native-app-boilerplate - Self-update for apps listed on prosperostore.net.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  *

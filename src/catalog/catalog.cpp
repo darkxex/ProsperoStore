@@ -269,13 +269,7 @@ bool api_url(std::string_view url)
 
 bool official_url(std::string_view url)
 {
-    const auto name = host(url);
-    if (name == "homebrew.page")
-        return true;
-    // The mirror is one repository's pages on a host shared with everyone's: its path is part
-    // of its identity, and nothing may climb out of it.
-    return name == "blackbearreloaded.github.io" && url.starts_with(kApiMirror) &&
-           url.find("..") == std::string_view::npos && url.find('%') == std::string_view::npos;
+    return host(url) == "prosperostore.net";
 }
 
 bool normalize_api(std::string_view value, std::string &out)

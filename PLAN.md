@@ -3,7 +3,7 @@
 Draft 5, 2026-10-02. Title ID **PPSA99000** (reserved in the catalog).
 
 ProsperoStore is a native PS5 app store for the homebrew catalog at
-[homebrew.page](https://homebrew.page). With the controller, from the couch,
+[prosperostore.net](https://prosperostore.net). With the controller, from the couch,
 you browse the catalog, install an app, see what you have installed, and keep
 it up to date. It manages three things and nothing else: **install, uninstall
 and update.**
@@ -27,7 +27,7 @@ duplicates them:
 
 Rendering is [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl) (OpenGL 4.6 Core, SDK 1.0.2). The catalog side
 is the store API specified in the
-[catalog repository](https://github.com/blackbearreloaded/ps5-homebrew-catalog)'s `docs/api.md`. Console work follows the
+[catalog repository](https://github.com/darkxex/ps5-homebrew-catalog)'s `docs/api.md`. Console work follows the
 [ps5-agent-runbook](https://github.com/blackbearreloaded/ps5-agent-runbook). [Foundations](#foundations) says how the store
 builds on the two repositories, and [The quality bar](#the-quality-bar) says
 what "extremely high quality" means here, in checks a milestone passes or
@@ -173,7 +173,7 @@ passes every line is the goal; a larger one that misses lines is not.
 
 | Piece | Used for | State |
 | --- | --- | --- |
-| Store API, `https://homebrew.page/api/v1/` | Catalog data, versions, icons | Live. Specified in the catalog's `docs/api.md`; versioned (`schema` 3) and signed. |
+| Store API, `https://prosperostore.net/api/v1/` | Catalog data, versions, icons | Live. Specified in the catalog's `docs/api.md`; versioned (`schema` 3) and signed. |
 | [`ps5-native-app-boilerplate`](https://github.com/blackbearreloaded/ps5-native-app-boilerplate) | Build, packaging, runtime, title layout (see [Foundations](#foundations)) | In use by every Prospero app. |
 | Sandbox elevation (`docs/SANDBOX_ELEVATION.md` in the boilerplate) | Reaching `/data` and the other install locations | Used by ProsperoEden. |
 | [`ps5-opengl`](https://github.com/blackbearreloaded/ps5-opengl) SDK 1.0.2 | Rendering | SDK 1.0.0 passed the OpenGL 4.6 conformance run.  |
@@ -221,12 +221,12 @@ passes every line is the goal; a larger one that misses lines is not.
   boilerplate's `examples/update-check/console_curl.c`, with
   `PACBREW_PACKAGES += libcurl` and `APP_WRAP_SYMBOLS += fcntl`; the store takes
   it from there (Foundations).
-- Against `homebrew.page` (Cloudflare): `sceHttp` answered five API requests
+- Against `prosperostore.net` (Cloudflare): `sceHttp` answered five API requests
   from a sandbox on 2026-10-02 in 71 to 154 ms each. **[proven]** The same
   five requests over libcurl, also from a sandbox, were answered in 147 to
   193 ms each with the certificate verified. **[proven]** (boilerplate
   `docs/UPDATE_CHECK.md`). libcurl from the elevated store against
-  `homebrew.page` is still to be shown (M2).
+  `prosperostore.net` is still to be shown (M2).
 - **Every curl handle must go through the boilerplate's
   `console_curl_setup()`**, which sets the console's `SO_NBIO` option on each
   socket. With the sockets left blocking, a request answered in 160 ms did not
@@ -298,7 +298,7 @@ passes every line is the goal; a larger one that misses lines is not.
 ### 3.5 Trust
 
 - Today the only thing between the catalog and the console is HTTPS. Whoever
-  could serve files as `homebrew.page` (a hijacked domain, a compromised
+  could serve files as `prosperostore.net` (a hijacked domain, a compromised
   deployment) could publish their own download address with a matching hash,
   and the store would install it with elevated privileges.
 - The record's `sha256` protects against a developer's release file being
@@ -344,7 +344,7 @@ Made by the owner on 2026-10-02 unless marked as a default.
 | D17 *(default)* | Pre-releases are offered like any other release, because the catalog lists one current release per app. |
 | D18 | **Signed catalog.** The catalog build signs what the store relies on with a plain Ed25519 key (not GPG: the console would need an OpenPGP parser). The private key is a secret of the catalog repository's deployment environment, never a file in the repository; a second key is generated at the same time and kept offline as the spare. The store carries both public keys and refuses anything unsigned, wrongly signed, or older than what it has already accepted. **The keys never expire** (owner's decision): they are raw keys with no validity period, the store checks no dates, and a key is retired only by switching to the spare. |
 | D19 | **Recall by removal.** Withdrawing an app means deleting its record from the catalog. The store warns, in neutral words, about any app it installed that is no longer in the verified catalog. No recall list and no reason. |
-| D20 | **GitHub-only downloads.** Artifacts are fetched over HTTPS from `github.com` and GitHub's release file host only, including every redirect. The API is fetched from `homebrew.page` only. |
+| D20 | **GitHub-only downloads.** Artifacts are fetched over HTTPS from `github.com` and GitHub's release file host only, including every redirect. The API is fetched from `prosperostore.net` only. |
 | D21 | **Hardened parsers.** Size limits on everything read from the network, strict validation, and fuzz tests for the JSON and ZIP code on the PC. |
 | D22 | **Exact space check.** After the download, the unpacked size is read from the archive's own directory and checked against free space before anything is unpacked. |
 | D23 | **Proven drives first.** Internal storage and the M.2 drive in the first release; a USB location appears only once M1 has proven it on that filesystem. |
@@ -391,7 +391,7 @@ Made by the owner on 2026-10-02 unless marked as a default.
   download size, license, source repository, and installed version when there
   is one.
 - One primary action, chosen by state (section 5.9).
-- A QR code and the short address of the app's page on homebrew.page, for the
+- A QR code and the short address of the app's page on prosperostore.net, for the
   release notes and the source on a phone.
 - A standing line: the app comes from its developer, who is responsible for
   it; some apps need a payload or extra setup described in their release
@@ -702,7 +702,7 @@ with a test.
 
 | For | Allowed hosts |
 | --- | --- |
-| The API and icons | `homebrew.page` |
+| The API and icons | `prosperostore.net` |
 | Artifacts | `github.com`, and GitHub's release file host reached by redirect from it |
 
 HTTPS only, certificates verified, at most five redirects, each checked. A
@@ -799,7 +799,7 @@ remains from this section is one Prospero app adopting it.
   doesn't launch the store and it downloads nothing.
 - **Rules it enforces:** never blocks start-up or the UI; one request with a
   short timeout; any failure means "unknown" and nothing is shown; the same
-  size limit and tolerant parsing as the store; HTTPS to `homebrew.page` only.
+  size limit and tolerant parsing as the store; HTTPS to `prosperostore.net` only.
 - **No elevation and no signature check:** it only displays a notice, so the
   transport's certificate check is enough, and it works inside the sandbox.
 - **Deliverables:** the source in the boilerplate with an example, host tests
@@ -817,7 +817,7 @@ passes [The quality bar](#the-quality-bar). Hardware gates are marked.
 | --- | --- | --- |
 | M0 | Bootstrap | The repository is created from the boilerplate template and builds an empty title for PPSA99000 with the OpenGL SDK and the UI library taken as its `docs/ADOPTING.md` describes, on the console build and on the PC host; the file recording what was taken, and from which commits, exists. The log, the crash report and the test mode with a clean remote exit are in from the first build. |
 | M1 | **Gate: filesystem** | On a console, after elevation, the store creates, renames and deletes a test folder in `/data/homebrew`; reads ShadowMountPlus's configuration and lists the scanned locations; and, for each other location, reports its filesystem and whether a rename is a single step there. Read-only mode appears when elevation is refused. This decides which locations the first release offers. |
-| M2 | **Gate: network and trust** | On a console, the store fetches the signed catalog from homebrew.page with certificate checks and verifies it; refuses a tampered and an outdated copy; and downloads one real release from GitHub through the redirect with a correct SHA-256, refusing a redirect to another host. Resume and Cancel are tried and recorded. All of it through libcurl from the elevated store. |
+| M2 | **Gate: network and trust** | On a console, the store fetches the signed catalog from prosperostore.net with certificate checks and verifies it; refuses a tampered and an outdated copy; and downloads one real release from GitHub through the redirect with a correct SHA-256, refusing a redirect to another host. Resume and Cancel are tried and recorded. All of it through libcurl from the elevated store. |
 | M3 | Catalog and browse | The full catalog scrolls at 60 frames per second with icons, sections, search and sort, from live data and from the offline cache. PC host first, then console. |
 | M4 | Install | A real catalog app installs from the store and appears on the home screen. Every refusal and failure in 5.3 has a test, including the exact space check and the archive limits. The fuzz tests of the JSON and archive readers run in CI through `make test`; the icon decoder's is still open. |
 | M5 | Installed, update, uninstall, running guard, recall | The Installed and Updates screens are correct for managed and unmanaged apps; update and uninstall work; a running app is refused; a test app removed from a test catalog shows the "no longer listed" warning. Needs the owner's running check (D9). |
@@ -865,7 +865,7 @@ passes [The quality bar](#the-quality-bar). Hardware gates are marked.
 | Developers not raising `contentVersion` | Updates never appear for their apps | Shown honestly as "no comparable version"; the catalog warns the developer |
 | A developer replaces a release file | The download no longer matches | Refused by the hash check; the catalog's health check flags the listing |
 | A drive is removed during an install | Failed install | Location checked before each step; the journal cleans up at the next start |
-| GitHub or homebrew.page unreachable | No installs | Offline browsing from the cache; retries; clear messages |
+| GitHub or prosperostore.net unreachable | No installs | Offline browsing from the cache; retries; clear messages |
 | Two copies of one title | ShadowMountPlus "duplicate titleId" | Refuse to install what is already present in any location |
 
 ---
@@ -959,7 +959,7 @@ To be confirmed and listed in `THIRD_PARTY_NOTICES.md` when each is added.
 | [ps5-native-app-boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate) | The template the store is created from; elevation and update check |
 | [ps5-homebrew-ui](https://github.com/blackbearreloaded/ps5-homebrew-ui) (private) | The UI library: renderer, components, themes, sound, the `store` design |
 | [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl) | The OpenGL 4.6 SDK both of them render with |
-| [ps5-homebrew-catalog](https://github.com/blackbearreloaded/ps5-homebrew-catalog) | The catalog, its signed store API (`docs/api.md`) and version rules (`docs/versioning.md`) |
+| [ps5-homebrew-catalog](https://github.com/darkxex/ps5-homebrew-catalog) | The catalog, its signed store API (`docs/api.md`) and version rules (`docs/versioning.md`) |
 | [ps5-agent-runbook](https://github.com/blackbearreloaded/ps5-agent-runbook) (private) | The contract for every console run |
 | [ps5-homebrew-dev-protocol](https://github.com/blackbearreloaded/ps5-homebrew-dev-protocol) | The launch helper and console tooling |
 | [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus) | Registers installed apps on the console |
