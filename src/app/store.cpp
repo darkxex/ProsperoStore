@@ -3625,10 +3625,26 @@ void Screen::draw(gfx::Renderer &renderer, const ui::Fonts &fonts)
     if (!all)
         home[homes++] = {ui::Button::square, i18n::trc("Downloads")};
     home[homes++] = {ui::Button::l1, i18n::trc("Sections"), ui::Button::r1};
+    home[homes++] = {ui::Button::options, i18n::trc("Settings")};
     if (!developer_.empty())
         home[homes++] = {ui::Button::circle, i18n::trc("All apps")};
     else
         home[homes++] = {ui::Button::circle, i18n::trc("Hold to close")};
+    // The row must fit between the margins in every language: when it doesn't, the hints a
+    // player finds by themselves go first (sorting, then categories, then Downloads).
+    for (const ui::Button spare : {ui::Button::right_stick, ui::Button::l2, ui::Button::square})
+    {
+        if (ui::measure_hints(fonts, home, homes) <= kWidth - 2.0f * kMargin)
+            break;
+        for (int i = 0; i < homes; ++i)
+            if (home[i].button == spare && !(spare == ui::Button::square && all))
+            {
+                for (int j = i; j + 1 < homes; ++j)
+                    home[j] = home[j + 1];
+                --homes;
+                break;
+            }
+    }
     // The page's row names the one thing Cross does for this app, when it can.
     const Offer state = focused() ? offer(*focused()) : Offer{};
     ui::Hint detail[8];
