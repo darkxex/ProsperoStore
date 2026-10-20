@@ -352,7 +352,7 @@ bool github_repository(std::string_view name)
                        });
 }
 
-std::string lower(std::string_view text)
+std::string lower_ascii(std::string_view text)
 {
     std::string out(text);
     for (auto &c : out)
@@ -373,13 +373,13 @@ bool github_catalog(std::string_view typed, std::string &out)
         return false;
     // What a person pastes: the repository's page address in any of its spellings.
     for (std::string_view prefix : {"https://", "http://"})
-        if (typed.size() >= prefix.size() && lower(typed.substr(0, prefix.size())) == prefix)
+        if (typed.size() >= prefix.size() && lower_ascii(typed.substr(0, prefix.size())) == prefix)
         {
             typed.remove_prefix(prefix.size());
             break;
         }
     for (std::string_view prefix : {"www.github.com/", "github.com/"})
-        if (typed.size() >= prefix.size() && lower(typed.substr(0, prefix.size())) == prefix)
+        if (typed.size() >= prefix.size() && lower_ascii(typed.substr(0, prefix.size())) == prefix)
         {
             typed.remove_prefix(prefix.size());
             break;
@@ -396,7 +396,7 @@ bool github_catalog(std::string_view typed, std::string &out)
     const auto owner = typed.substr(0, slash), repository = typed.substr(slash + 1);
     if (!github_owner(owner) || !github_repository(repository))
         return false;
-    out = lower(owner) + "/" + std::string(repository);
+    out = lower_ascii(owner) + "/" + std::string(repository);
     return true;
 }
 
