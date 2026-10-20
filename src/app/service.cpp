@@ -966,7 +966,7 @@ void Service::run()
                 if (catalog::api_url(page) && hui::encode_qr(page, qr.image))
                     publish(std::move(qr));
             }
-            if (verified_detail && comments_.load() && refreshed && !from_extra &&
+            if (verified_detail && comments_.load() && refreshed && !from &&
                 !control_.cancelled.load())
             {
                 // The app's latest comments, after everything the catalog itself says about it.
