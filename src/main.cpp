@@ -284,13 +284,15 @@ int main()
         screen.set_settings(store::parse_settings(saved));
         service.check_updates = screen.settings().check_updates;
         service.show_comments(screen.settings().show_comments);
-        // The custom catalog only when it is switched on; the official one is always signed.
+        // The custom catalogs only when they are switched on; the official one is always signed.
         const auto &chosen = screen.settings();
         const bool custom = chosen.custom_active();
-        service.catalog_url =
-            custom ? chosen.catalog_url : std::string(store::catalog::kDefaultApi);
+        service.catalogs.clear();
+        if (custom)
+            for (const auto &name : chosen.catalogs)
+                service.catalogs.push_back({store::catalog::github_catalog_api(name), name});
         service.verify_signatures = custom ? chosen.verify_signatures : true;
-        service.with_official = custom && chosen.use_official;
+        service.with_official = !custom || chosen.use_official;
     }
 #ifdef STORE_INSTALLER
     service.installer = elevated;
@@ -889,21 +891,18 @@ int main()
         }
 #endif
         const bool keyboard_owns_input =
-            keyboard_active || screen.pending_search || screen.pending_catalog_url;
+            keyboard_active || screen.pending_search || screen.pending_catalog_add;
         if (!keyboard_active && ((screen.pending_search && !frame.is_held(Action::north)) ||
-                                 (screen.pending_catalog_url && !frame.is_held(Action::confirm))))
+                                 (screen.pending_catalog_add && !frame.is_held(Action::confirm))))
         {
-            keyboard_catalog = screen.pending_catalog_url;
+            keyboard_catalog = screen.pending_catalog_add;
             screen.pending_search = false;
-            screen.pending_catalog_url = false;
+            screen.pending_catalog_add = false;
             keyboard_active =
                 keyboard_catalog
-                    ? keyboard.open(store::i18n::trs("Custom catalog URL"),
-                                    "https://example.com/api/v1/",
-                                    screen.settings().catalog_url == store::catalog::kDefaultApi
-                                        ? std::string("https://")
-                                        : screen.settings().catalog_url,
-                                    512, ps5::Ime::Enter::go)
+                    ? keyboard.open(store::i18n::trs("Add a GitHub catalog"),
+                                    store::i18n::trs("owner/repository"), std::string(), 160,
+                                    ps5::Ime::Enter::go)
                     : keyboard.open(store::i18n::trs("Search ProsperoStore"),
                                     store::i18n::trs("App name or developer"), screen.query());
             sys::log("[STORE] keyboard open=%d", keyboard_active ? 1 : 0);
@@ -930,16 +929,16 @@ int main()
             {
                 if (keyboard_catalog)
                 {
-                    screen.set_catalog_url(keyboard.text());
-                    sys::log("[STORE] custom catalog url=%s active=%d",
-                             screen.settings().catalog_url.c_str(),
+                    screen.add_catalog(keyboard.text());
+                    sys::log("[STORE] custom catalogs=%zu active=%d",
+                             screen.settings().catalogs.size(),
                              screen.settings().custom_active() ? 1 : 0);
                 }
                 else
                     screen.set_query(keyboard.text());
             }
             else if (keyboard_catalog && state != ps5::Ime::State::open)
-                screen.catalog_url_cancelled(); // closed without an address
+                screen.catalog_add_cancelled(); // closed without a name
             if (state == ps5::Ime::State::failed)
                 screen.notify(store::i18n::trs("Keyboard closed"),
                               store::i18n::trs("The system keyboard closed unexpectedly. Please "

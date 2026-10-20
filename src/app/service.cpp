@@ -358,9 +358,10 @@ void Service::run_installer()
         environment.root = root_;
         environment.self = "PPSA99000";
         environment.self_version = version_;
-        environment.catalog = catalog_url;
-        environment.fetch = [custom = catalog_url](const std::string &url, std::uint64_t limit,
-                                                   const net::Sink &sink, net::Control &control)
+        // Release files come from GitHub, whichever catalog lists them: a custom catalog's own
+        // host is not trusted with them (environment.catalog names none).
+        environment.fetch = [](const std::string &url, std::uint64_t limit, const net::Sink &sink,
+                               net::Control &control)
         {
 #ifdef STORE_DEVELOPMENT
             // A scripted self-update reads its archive from the console, since
@@ -394,7 +395,7 @@ void Service::run_installer()
                 return response;
             }
 #endif
-            return net::get(url, net::Purpose::artifact, limit, sink, control, {}, custom);
+            return net::get(url, net::Purpose::artifact, limit, sink, control);
         };
         environment.running = [](const std::string &id) { return system::title_running(id); };
 #ifdef STORE_FILE_WORKER
@@ -646,20 +647,35 @@ void Service::run()
         publish(std::move(failure));
         return;
     }
-    // "Official plus custom": the official catalog is the one everything below is about,
-    // signed and checked as ever; the custom one is loaded beside it and only adds apps.
-    const bool additive = with_official && catalog_url != catalog::kDefaultApi;
+    // The catalog everything below is about: the official one, signed and checked as ever,
+    // unless it is switched off, when the first custom catalog takes its place. The other
+    // custom catalogs are loaded beside it, in order, and only add apps.
+    const bool official = with_official || catalogs.empty();
     const std::string cache_folder = root_.empty() ? "" : root_ + "/cache";
-    catalog::Client client(cache_folder, additive ? std::string(catalog::kDefaultApi) : catalog_url,
-                           additive ? true : verify_signatures);
-    catalog::Client extra_client(cache_folder, catalog_url, verify_signatures);
-    catalog::Snapshot extra;
-    std::string extra_error;
+    catalog::Client client(cache_folder,
+                           official ? std::string(catalog::kDefaultApi) : catalogs.front().api,
+                           official ? true : verify_signatures);
+    struct Extra
+    {
+        CustomCatalog source;
+        catalog::Client client;
+        catalog::Snapshot snapshot = {};
+        std::string error = {};
+        bool refreshed = false;
+    };
+    std::vector<Extra> extras;
+    for (std::size_t i = official ? 0 : 1; i < catalogs.size(); ++i)
+        extras.push_back(
+            {catalogs[i], catalog::Client(cache_folder, catalogs[i].api, verify_signatures)});
+    const bool additive = !extras.empty();
     std::vector<std::string> clashes;
-    const auto shown = [&](const catalog::Snapshot &official)
+    const auto shown = [&](const catalog::Snapshot &base)
     {
         clashes.clear();
-        return additive ? catalog::with_extra(official, extra, &clashes) : official;
+        auto out = base;
+        for (const auto &extra : extras)
+            out = catalog::with_extra(std::move(out), extra.snapshot, &clashes, extra.source.label);
+        return out;
     };
     system::ScanPolicy scan_policy;
     std::vector<std::string> setup_notes;
@@ -693,8 +709,8 @@ void Service::run()
     catalog::Snapshot snapshot;
     std::string error;
     const bool had_cache = client.cached(snapshot, error);
-    if (additive)
-        (void)extra_client.cached(extra, extra_error);
+    for (auto &extra : extras)
+        (void)extra.client.cached(extra.snapshot, extra.error);
 #ifdef STORE_DEBUG_TRACE
     diag::trace("catalog cache in %s: %s%s%s", root_.empty() ? "(no store folder)" : root_.c_str(),
                 had_cache ? "found" : "none", error.empty() ? "" : ", ", error.c_str());
@@ -725,18 +741,19 @@ void Service::run()
             for (unsigned tick = 0; tick < (10U << attempt) && !control_.cancelled.load(); ++tick)
                 hui::sys::sleep_us(100000);
     }
-    // The custom catalog beside it: two tries, and the official one is shown either way.
-    bool extra_refreshed = false;
-    for (unsigned attempt = 0; additive && attempt < 2 && !control_.cancelled.load(); ++attempt)
-    {
-        if ((extra_refreshed = extra_client.refresh(extra, control_, extra_error)))
-            break;
-        hui::sys::log("[STORE] custom catalog attempt=%u error=%s", attempt + 1,
-                      extra_error.c_str());
+    // The custom catalogs beside it: two tries each, and the rest is shown either way.
+    for (auto &extra : extras)
+        for (unsigned attempt = 0; attempt < 2 && !control_.cancelled.load(); ++attempt)
+        {
+            if ((extra.refreshed = extra.client.refresh(extra.snapshot, control_, extra.error)))
+                break;
+            hui::sys::log("[STORE] custom catalog %s attempt=%u error=%s",
+                          extra.source.label.c_str(), attempt + 1, extra.error.c_str());
 #ifdef STORE_DEBUG_TRACE
-        diag::trace("custom catalog attempt %u of 2: %s", attempt + 1, extra_error.c_str());
+            diag::trace("custom catalog %s attempt %u of 2: %s", extra.source.label.c_str(),
+                        attempt + 1, extra.error.c_str());
 #endif
-    }
+        }
     if (!control_.cancelled.load())
     {
         Update result;
@@ -751,32 +768,50 @@ void Service::run()
                       snapshot.verified, refreshed,
                       static_cast<unsigned long long>(snapshot.manifest.sequence),
                       snapshot.entries.size());
-        if (additive && snapshot.accepted)
-            result.message += extra.accepted
-                                  ? (extra.verified ? " • Custom catalog added"
-                                                    : " • Custom catalog added, not checked")
-                                  : " • Custom catalog unavailable";
-        publish(std::move(result));
-        if (additive && !control_.cancelled.load() && (!extra.accepted || !clashes.empty()))
+        std::size_t loaded = 0, checked = 0;
+        for (const auto &extra : extras)
         {
-            // Said once: why the custom catalog, or some of it, isn't on the shelves.
+            loaded += extra.snapshot.accepted ? 1 : 0;
+            checked += extra.snapshot.accepted && extra.snapshot.verified ? 1 : 0;
+        }
+        if (additive && snapshot.accepted)
+        {
+            // The pieces are sentences of their own: the screen says each in its language.
+            if (extras.size() == 1)
+                result.message += loaded == 0    ? " • Custom catalog unavailable"
+                                  : checked == 1 ? " • Custom catalog added"
+                                                 : " • Custom catalog added, not checked";
+            else
+                result.message += loaded == 0              ? " • Custom catalogs unavailable"
+                                  : loaded < extras.size() ? " • Some custom catalogs unavailable"
+                                  : checked == extras.size()
+                                      ? " • Custom catalogs added"
+                                      : " • Custom catalogs added, not checked";
+        }
+        publish(std::move(result));
+        // Said once each: a custom catalog that isn't on the shelves, and apps that are hidden
+        // because an earlier catalog lists their title ID.
+        for (const auto &extra : extras)
+        {
+            if (extra.snapshot.accepted || control_.cancelled.load())
+                continue;
             Update notice;
             notice.kind = Update::Kind::notice;
-            if (!extra.accepted)
-            {
-                notice.message = i18n::trs("Custom catalog not loaded");
-                notice.detail =
-                    extra_error.empty() ? i18n::trs("It could not be read.") : extra_error;
-            }
-            else
-            {
-                notice.message =
-                    std::to_string(clashes.size()) +
-                    (clashes.size() == 1 ? " custom app hidden" : " custom apps hidden");
-                notice.detail = "prosperostore.net lists the same title ID, and its app is the one "
-                                "shown: " +
-                                clashes.front() + (clashes.size() > 1 ? " and others." : ".");
-            }
+            notice.message = i18n::trs("Custom catalog not loaded");
+            notice.detail =
+                extra.source.label + ": " +
+                (extra.error.empty() ? i18n::trs("It could not be read.") : extra.error);
+            publish(std::move(notice));
+        }
+        if (additive && !control_.cancelled.load() && !clashes.empty())
+        {
+            Update notice;
+            notice.kind = Update::Kind::notice;
+            notice.message = std::to_string(clashes.size()) +
+                             (clashes.size() == 1 ? " custom app hidden" : " custom apps hidden");
+            notice.detail =
+                "Another catalog lists the same title ID, and its app is the one shown: " +
+                clashes.front() + (clashes.size() > 1 ? " and others." : ".");
             publish(std::move(notice));
         }
     }
@@ -883,14 +918,25 @@ void Service::run()
         if (!id.empty())
         {
             Update result;
-            // An app the official catalog doesn't list is the custom catalog's to describe.
-            const bool from_extra =
-                additive && std::none_of(snapshot.entries.begin(), snapshot.entries.end(),
-                                         [&](const auto &entry) { return entry.id == id; });
-            if (from_extra ? extra_client.detail(extra, id, result.entry, control_, result.message)
-                           : client.detail(snapshot, id, result.entry, control_, result.message))
+            // An app the main catalog doesn't list is described by the custom catalog that
+            // does: the first of them, as the shelves show it.
+            const auto lists = [&](const catalog::Snapshot &where)
             {
-                result.entry.extra = from_extra;
+                return std::any_of(where.entries.begin(), where.entries.end(),
+                                   [&](const auto &entry) { return entry.id == id; });
+            };
+            Extra *from = nullptr;
+            if (!lists(snapshot))
+                for (auto &extra : extras)
+                    if (!from && lists(extra.snapshot))
+                        from = &extra;
+            if (from ? from->client.detail(from->snapshot, id, result.entry, control_,
+                                           result.message)
+                     : client.detail(snapshot, id, result.entry, control_, result.message))
+            {
+                result.entry.extra = from != nullptr;
+                if (from)
+                    result.entry.catalog_label = from->source.label;
                 result.kind = Update::Kind::detail;
                 if (!result.entry.large_icon.empty())
                 {

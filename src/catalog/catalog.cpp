@@ -324,6 +324,110 @@ bool normalize_api(std::string_view value, std::string &out)
     out = std::move(candidate);
     return true;
 }
+namespace
+{
+// A GitHub user or organisation name: letters, digits and single hyphens, at most 39, not at
+// the ends. A repository name: letters, digits, "-", "_" and ".", at most 100, not "." or "..".
+bool github_owner(std::string_view name)
+{
+    if (name.empty() || name.size() > 39 || name.front() == '-' || name.back() == '-' ||
+        name.find("--") != name.npos)
+        return false;
+    return std::all_of(name.begin(), name.end(),
+                       [](char c) {
+                           return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                                  (c >= '0' && c <= '9') || c == '-';
+                       });
+}
+
+bool github_repository(std::string_view name)
+{
+    if (name.empty() || name.size() > 100 || name == "." || name == ".." || name.ends_with(".git"))
+        return false;
+    return std::all_of(name.begin(), name.end(),
+                       [](char c)
+                       {
+                           return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                                  (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.';
+                       });
+}
+
+std::string lower(std::string_view text)
+{
+    std::string out(text);
+    for (auto &c : out)
+        if (c >= 'A' && c <= 'Z')
+            c = static_cast<char>(c - 'A' + 'a');
+    return out;
+}
+} // namespace
+
+bool github_catalog(std::string_view typed, std::string &out)
+{
+    const auto blank = [](char c) { return static_cast<unsigned char>(c) <= 32; };
+    while (!typed.empty() && blank(typed.front()))
+        typed.remove_prefix(1);
+    while (!typed.empty() && blank(typed.back()))
+        typed.remove_suffix(1);
+    if (typed.size() > 512)
+        return false;
+    // What a person pastes: the repository's page address in any of its spellings.
+    for (std::string_view prefix : {"https://", "http://"})
+        if (typed.size() >= prefix.size() && lower(typed.substr(0, prefix.size())) == prefix)
+        {
+            typed.remove_prefix(prefix.size());
+            break;
+        }
+    for (std::string_view prefix : {"www.github.com/", "github.com/"})
+        if (typed.size() >= prefix.size() && lower(typed.substr(0, prefix.size())) == prefix)
+        {
+            typed.remove_prefix(prefix.size());
+            break;
+        }
+    if (typed.starts_with('@'))
+        typed.remove_prefix(1);
+    while (typed.ends_with('/'))
+        typed.remove_suffix(1);
+    if (typed.ends_with(".git"))
+        typed.remove_suffix(4);
+    const auto slash = typed.find('/');
+    if (slash == typed.npos || typed.find('/', slash + 1) != typed.npos)
+        return false;
+    const auto owner = typed.substr(0, slash), repository = typed.substr(slash + 1);
+    if (!github_owner(owner) || !github_repository(repository))
+        return false;
+    out = lower(owner) + "/" + std::string(repository);
+    return true;
+}
+
+std::string github_catalog_api(std::string_view shorthand)
+{
+    std::string name;
+    if (!github_catalog(shorthand, name))
+        return {};
+    const auto slash = name.find('/');
+    return "https://" + name.substr(0, slash) + ".github.io/" + name.substr(slash + 1) + "/api/v1/";
+}
+
+std::string github_catalog_of(std::string_view api)
+{
+    constexpr std::string_view kPages = ".github.io/", kTail = "/api/v1/";
+    const auto name = host(api);
+    if (name.empty() || !name.ends_with(kPages.substr(0, kPages.size() - 1)) ||
+        !api.ends_with(kTail))
+        return {};
+    const auto owner = name.substr(0, name.size() - (kPages.size() - 1));
+    const auto path = api.substr(8 + name.size() + 1);
+    if (path.size() <= kTail.size())
+        return {};
+    const auto repository = path.substr(0, path.size() - kTail.size());
+    std::string shorthand;
+    if (!github_catalog(std::string(owner) + "/" + std::string(repository), shorthand) ||
+        github_catalog_api(shorthand) != api)
+        return {};
+    return shorthand;
+}
+
 bool artifact_url(std::string_view url, bool redirected, std::string_view custom)
 {
     const auto domain = host(url);

@@ -1892,6 +1892,21 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
                     if (app.title_id == ask_id_)
                         order(app, Order::Kind::install);
             }
+            else if (ask_ == Ask::remove_catalog)
+            {
+                auto &list = settings_.catalogs;
+                list.erase(std::remove(list.begin(), list.end(), ask_id_), list.end());
+                if (list.empty())
+                {
+                    settings_.use_custom = false;
+                    settings_.use_official = true;
+                }
+                // The rows moved up: the focus stays on a row that exists.
+                if (development_options_)
+                    setting_focus_ = std::min(setting_focus_, 4 + static_cast<int>(list.size()));
+                settings_changed = true;
+                notify(trs("Catalog removed"), trs("Close and reopen ProsperoStore to apply."));
+            }
             else
                 for (const auto &app : apps_)
                     if (app.title_id == ask_id_ && !app.installed.empty())
@@ -2115,11 +2130,8 @@ void Screen::draw_top_bar(const ui::Fonts &fonts)
     // Where the apps come from, said once and quietly beside the name.
     const float x = kMargin + 42.0f + brand + 20.0f;
     list.rounded_rect({x, kTopY - 11.0f, 1.5f, 22.0f}, 0, kInk.with_alpha(0.25f));
-    ui::text(list, fonts.semibold,
-             active_catalog_url_ == catalog::kDefaultApi ? std::string_view("prosperostore.net")
-             : active_with_official_                     ? tr("Two catalogs")
-                                                         : tr("Custom catalog"),
-             x + 20.0f, centred(kTopY, 20), 20, kAccent.with_alpha(0.92f));
+    ui::text(list, fonts.semibold, sources_label(false), x + 20.0f, centred(kTopY, 20), 20,
+             kAccent.with_alpha(0.92f));
 
     // The sections: words, the active one lit, one gold line gliding under it.
     const auto glyphs = ui::GlyphStyle::dark();
@@ -3307,8 +3319,10 @@ void Screen::draw_page(const ui::Fonts &fonts, std::uint32_t glass)
         chip(app.detail->size ? size_text(app.detail->size) : std::string());
         chip(app.detail->license);
         chip(app.detail->format.empty() ? std::string() : ui::upper(app.detail->format));
-        // From the custom catalog shown beside the official one: said on its page.
-        chip(app.detail->extra ? trs("Custom catalog") : std::string());
+        // From a custom catalog shown beside the official one: named on its page.
+        chip(!app.detail->extra                  ? std::string()
+             : app.detail->catalog_label.empty() ? trs("Custom catalog")
+                                                 : app.detail->catalog_label);
         chip(app.detail->sandbox == "stays"    ? trs("Stays in sandbox")
              : app.detail->sandbox == "leaves" ? trs("Leaves sandbox")
                                                : std::string());
@@ -3715,17 +3729,29 @@ void Screen::draw(gfx::Renderer &renderer, const ui::Fonts &fonts)
 
 std::string format_settings(const Settings &settings)
 {
+    // One line per custom catalog, in order.
+    std::string catalogs;
+    for (const auto &name : settings.catalogs)
+        catalogs += "\ncatalog=" + name;
     return "location=" + settings.location + "\nupdates=" + (settings.check_updates ? "1" : "0") +
            "\nsounds=" + (settings.sounds ? "1" : "0") +
            "\nvibration=" + (settings.vibration ? "1" : "0") +
            "\nmotion=" + (settings.reduce_motion ? "reduced" : "full") +
-           "\ndebug=" + (settings.debug_log ? "1" : "0") + "\ncatalog_url=" + settings.catalog_url +
+           "\ndebug=" + (settings.debug_log ? "1" : "0") +
            "\nverify_signatures=" + (settings.verify_signatures ? "1" : "0") +
            "\nuse_official=" + (settings.use_official ? "1" : "0") +
-           "\nuse_custom=" + (settings.use_custom ? "1" : "0") +
+           "\nuse_custom=" + (settings.use_custom ? "1" : "0") + catalogs +
            "\nnews_seen=" + settings.news_seen +
            "\nshow_comments=" + (settings.show_comments ? "1" : "0") +
            "\nlanguage=" + (settings.language_auto ? "auto" : i18n::code(settings.language)) + "\n";
+}
+
+std::vector<std::string> Settings::catalog_urls() const
+{
+    std::vector<std::string> urls;
+    for (const auto &name : catalogs)
+        urls.push_back(catalog::github_catalog_api(name));
+    return urls;
 }
 
 Settings parse_settings(std::string_view text)
@@ -3752,8 +3778,20 @@ Settings parse_settings(std::string_view text)
             settings.reduce_motion = value == "reduced";
         else if (key == "debug")
             settings.debug_log = value == "1";
-        else if (key == "catalog_url")
-            catalog::normalize_api(value, settings.catalog_url);
+        else if (key == "catalog" || key == "catalog_url")
+        {
+            // catalog_url is the one address older versions kept: it is carried over when it
+            // was a repository's GitHub Pages site, and forgotten otherwise.
+            std::string name, url;
+            const bool known = key == "catalog"
+                                   ? catalog::github_catalog(value, name)
+                                   : catalog::normalize_api(value, url) &&
+                                         !(name = catalog::github_catalog_of(url)).empty();
+            if (known && settings.catalogs.size() < Settings::kMaxCatalogs &&
+                std::find(settings.catalogs.begin(), settings.catalogs.end(), name) ==
+                    settings.catalogs.end())
+                settings.catalogs.push_back(name);
+        }
         else if (key == "verify_signatures")
             settings.verify_signatures = value != "0";
         else if (key == "use_official")
@@ -3772,7 +3810,7 @@ Settings parse_settings(std::string_view text)
                 settings.language = chosen;
         }
     }
-    // A custom catalog with no address is not one: the official catalog alone.
+    // Custom catalogs with none listed are not in use: the official catalog alone.
     if (!settings.custom_active())
     {
         settings.use_official = true;
@@ -3781,50 +3819,76 @@ Settings parse_settings(std::string_view text)
     return settings;
 }
 
-void Screen::catalog_url_cancelled()
+void Screen::catalog_add_cancelled()
 {
-    if (settings_.use_custom && settings_.catalog_url == catalog::kDefaultApi)
+    if (settings_.use_custom && settings_.catalogs.empty())
     {
         settings_.use_custom = false;
         settings_.use_official = true;
         settings_changed = true;
-        notify(trs("Custom catalog is off"), trs("No address was entered."));
+        notify(trs("Custom catalogs are off"), trs("No catalog was added."));
     }
 }
 
-void Screen::set_catalog_url(std::string_view value)
+void Screen::add_catalog(std::string_view typed)
 {
-    // As it was typed: spaces and line ends around it go, and a bare host gets https://.
     const auto blank = [](char c) { return static_cast<unsigned char>(c) <= 32; };
-    while (!value.empty() && blank(value.front()))
-        value.remove_prefix(1);
-    while (!value.empty() && blank(value.back()))
-        value.remove_suffix(1);
-    std::string typed(value);
-    if (typed.empty() || typed == "https://")
-        return catalog_url_cancelled();
-    if (typed.find("://") == typed.npos)
-        typed = "https://" + typed;
-    std::string url;
-    if (!catalog::normalize_api(typed, url))
+    while (!typed.empty() && blank(typed.front()))
+        typed.remove_prefix(1);
+    while (!typed.empty() && blank(typed.back()))
+        typed.remove_suffix(1);
+    if (typed.empty())
+        return catalog_add_cancelled();
+    std::string name;
+    if (!catalog::github_catalog(typed, name))
     {
-        notify(trs("Not a catalog address"),
-               trs("Use an HTTPS address such as https://example.com/api/v1/. Nothing was "
-                   "changed."));
-        return catalog_url_cancelled();
+        notify(trs("Not a GitHub repository"),
+               trs("Type it as owner/repository, for example darkxex/ps5-homebrew-catalog. "
+                   "Nothing was changed."));
+        return catalog_add_cancelled();
     }
-    if (url == catalog::kDefaultApi)
+    if (name == catalog::github_catalog_of(std::string(catalog::kApiMirror) + "api/v1/"))
     {
-        // The official address is the Official catalog switch, not a custom catalog.
+        // The official catalog's own repository is the Official catalog switch.
         notify(trs("That is the official catalog"),
-               trs("Enter your own feed's address. prosperostore.net has its own switch."));
-        return catalog_url_cancelled();
+               trs("prosperostore.net has its own switch. Add a different repository."));
+        return catalog_add_cancelled();
     }
-    settings_.catalog_url = std::move(url);
+    auto &list = settings_.catalogs;
+    if (std::find(list.begin(), list.end(), name) != list.end())
+    {
+        notify(trs("Already added"), trf("{0} is in the list already.", {name}));
+        return catalog_add_cancelled();
+    }
+    if (list.size() >= Settings::kMaxCatalogs)
+    {
+        notify(trs("No room for another catalog"),
+               trf("Up to {0} catalogs can be added. Remove one first.",
+                   {std::to_string(Settings::kMaxCatalogs)}));
+        return catalog_add_cancelled();
+    }
+    list.push_back(name);
     settings_.use_custom = true;
     settings_changed = true;
-    notify(trs("Custom catalog saved"),
-           trf("{0} - close and reopen the store.", {settings_.catalog_url}));
+    notify(trs("Catalog added"), trf("{0} - close and reopen the store.", {name}));
+}
+
+std::string Screen::sources_label(bool about) const
+{
+    if (active_catalogs_.empty())
+        return "prosperostore.net";
+    std::string names;
+    for (const auto &name : active_catalogs_)
+        names += (names.empty() ? "" : ", ") + name;
+    if (about)
+        return active_with_official_ ? trf("prosperostore.net and {0}", {names}) : names;
+    // The top bar has room for a few words: one name, or how many catalogs there are.
+    const std::size_t count = active_catalogs_.size() + (active_with_official_ ? 1 : 0);
+    if (count == 1)
+        return names;
+    if (count == 2 && active_with_official_)
+        return trs("Two catalogs");
+    return trf("{0} catalogs", {std::to_string(count)});
 }
 
 void Screen::set_locations(std::vector<std::pair<std::string, std::uint64_t>> locations)
@@ -3898,14 +3962,26 @@ void Screen::turn_language(int turn)
 namespace
 {
 // The settings in the order Settings lists them, by number (the rows of draw_panel). The ones
-// before 5 and Language are the first rows; the Development options hold 5 to 9.
+// before 5 and Language are the first rows; the Development options hold 5 to 9, with one row
+// per custom catalog (kCatalogSetting + its place) between "Add a GitHub catalog" (7) and the
+// signature switch (8).
 constexpr int kListedSettings[] = {0, 1, 14, 2, 3, 4, 13, 12, 10, 11};
 constexpr int kListedCount = static_cast<int>(sizeof(kListedSettings) / sizeof(int));
-constexpr int kDevelopmentCount = 5;
+constexpr int kCatalogSetting = 20;
 constexpr int kDevelopmentRow = 9; // where "Development options" is listed
-int setting_at(bool development, int focus)
+int development_count(int catalogs)
 {
-    return development ? focus + 5 : kListedSettings[focus];
+    return 5 + catalogs;
+}
+int setting_at(bool development, int focus, int catalogs)
+{
+    if (!development)
+        return kListedSettings[focus];
+    if (focus < 3)
+        return focus + 5;
+    if (focus < 3 + catalogs)
+        return kCatalogSetting + (focus - 3);
+    return focus - catalogs + 5;
 }
 } // namespace
 
@@ -3993,7 +4069,11 @@ void Screen::write_about()
     blocks.push_back(
         Block::key_value(trs("Version"), self_version_.empty() ? trs("Unknown") : self_version_));
     blocks.push_back(Block::key_value(trs("Catalog"), status_text(status_)));
-    blocks.push_back(Block::key_value(trs("Active API URL"), active_catalog_url_));
+    if (active_with_official_)
+        blocks.push_back(Block::key_value(trs("Active API URL"), catalog::kDefaultApi));
+    for (const auto &name : active_catalogs_)
+        blocks.push_back(Block::key_value(trs("Custom catalog"),
+                                          name + " - " + catalog::github_catalog_api(name)));
     blocks.push_back(Block::key_value(trs("New apps go to"), settings_.location));
     blocks.push_back(Block::heading(trs("How it keeps installs safe"), 3));
     blocks.push_back(Block::bullet(
@@ -4088,7 +4168,8 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
         news_view_.handle(input, feedback);
         return;
     }
-    const int kRows = development_options_ ? kDevelopmentCount : kListedCount;
+    const int catalogs = static_cast<int>(settings_.catalogs.size());
+    const int kRows = development_options_ ? development_count(catalogs) : kListedCount;
     if (step)
     {
         const int next = setting_focus_ + step;
@@ -4103,7 +4184,23 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
                                                                                         : 0;
     if (!turn)
         return;
-    const int setting = setting_at(development_options_, setting_focus_);
+    const int setting = setting_at(development_options_, setting_focus_, catalogs);
+    if (setting >= kCatalogSetting)
+    {
+        // A catalog's row: Cross asks before it goes.
+        if (!input.is_pressed(Action::confirm))
+            return;
+        ask_id_ = settings_.catalogs[static_cast<std::size_t>(setting - kCatalogSetting)];
+        ask_ = Ask::remove_catalog;
+        dialog_.open({ui::StatusKind::question,
+                      trs("Remove this catalog?"),
+                      trf("{0} will no longer be read. Its apps leave the shelves when the store "
+                          "next opens; what is installed stays.",
+                          {ask_id_}),
+                      {{trs("Cancel")}, {trs("Remove"), ui::ButtonKind::primary}}},
+                     feedback);
+        return;
+    }
     if (setting == 14)
         turn_language(turn);
     else if (setting == 13)
@@ -4166,8 +4263,8 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
     else if (setting == 6)
     {
         settings_.use_custom = !settings_.use_custom;
-        if (settings_.use_custom && settings_.catalog_url == catalog::kDefaultApi)
-            pending_catalog_url = true; // no address yet: ask for it now
+        if (settings_.use_custom && settings_.catalogs.empty())
+            pending_catalog_add = true; // none listed yet: ask for one now
         if (!settings_.custom_active())
             settings_.use_official = true;
         notify(trs("Catalog settings saved"),
@@ -4176,8 +4273,16 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
     }
     else if (setting == 7)
     {
-        if (input.is_pressed(Action::confirm))
-            pending_catalog_url = true;
+        if (!input.is_pressed(Action::confirm))
+            return;
+        if (settings_.catalogs.size() >= Settings::kMaxCatalogs)
+        {
+            notify(trs("No room for another catalog"),
+                   trf("Up to {0} catalogs can be added. Remove one first.",
+                       {std::to_string(Settings::kMaxCatalogs)}));
+            return refuse(feedback, input.nav_repeat, 0.0f, 0.0f);
+        }
+        pending_catalog_add = true;
         return;
     }
     else if (setting == 8)
@@ -4205,10 +4310,10 @@ void Screen::update_panel(const InputFrame &input, ui::Feedback &feedback)
     {
         if (!input.is_pressed(Action::confirm))
             return;
+        // The catalogs stay listed, switched off: each has its own Remove.
         settings_.verify_signatures = true;
         settings_.use_official = true;
         settings_.use_custom = false;
-        settings_.catalog_url = catalog::kDefaultApi;
         notify(trs("Official catalog restored"), trs("Close and reopen ProsperoStore to apply."));
     }
     else
@@ -4518,7 +4623,7 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
         {
             int sign;
             std::string_view label, note;
-            int kind; // 0 value, 1 switch, 2 chip, 3 a text to edit, 4 a choice
+            int kind; // 0 value, 1 switch, 2 chip, 3 a text to edit, 4 a choice, 5 a catalog
             std::string value;
             bool on;
         } rows[] = {
@@ -4534,12 +4639,12 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
             {4, tr("Official catalog"),
              tr("prosperostore.net, signed. With both on, its apps win a clash."), 1, "",
              settings_.use_official},
-            {4, tr("Custom catalog"), tr("Your own feed. With both on, its apps are added."), 1, "",
+            {4, tr("Custom catalogs"),
+             tr("Your own catalogs from GitHub. With both on, their apps are added."), 1, "",
              settings_.use_custom},
-            {4, tr("Custom catalog URL"),
-             tr("HTTPS API directory. Applies when the store next opens."), 3,
-             settings_.catalog_url == catalog::kDefaultApi ? trs("Not set") : settings_.catalog_url,
-             false},
+            {4, tr("Add a GitHub catalog"),
+             tr("Type owner/repository: a repository laid out like ps5-homebrew-catalog."), 2,
+             trs("Add"), false},
             {4, tr("Verify custom catalog signatures"),
              tr("The official catalog is always checked. Applies next launch."), 1, "",
              settings_.verify_signatures},
@@ -4567,41 +4672,61 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
         {
             ui::text(list, fonts.display, tr("Development options"), px, y + 40.0f, 36, kInk);
             ui::text(list, fonts.regular,
-                     tr("Use your own feed for development. Changes apply next launch."), px,
-                     y + 78.0f, 21, kInk.with_alpha(0.6f));
+                     tr("Add catalogs kept on GitHub. Changes apply next launch."), px, y + 78.0f,
+                     21, kInk.with_alpha(0.6f));
             y += 112.0f;
         }
+        const int catalogs = static_cast<int>(settings_.catalogs.size());
         const int first = std::max(0, setting_focus_ - 5);
-        const int count = development_options_ ? kDevelopmentCount : kListedCount;
+        const int count = development_options_ ? development_count(catalogs) : kListedCount;
         for (int focus = first; focus < std::min(first + 6, count); ++focus)
         {
-            const int i = setting_at(development_options_, focus);
+            const int setting = setting_at(development_options_, focus, catalogs);
+            // A custom catalog's row: its name, its address under it, and Remove. The
+            // address lives here so the row's views have something to point at.
+            const std::string catalog_api =
+                setting >= kCatalogSetting
+                    ? catalog::github_catalog_api(
+                          settings_.catalogs[static_cast<std::size_t>(setting - kCatalogSetting)])
+                    : std::string();
+            const Row catalog_row{
+                4,
+                setting >= kCatalogSetting
+                    ? std::string_view(
+                          settings_.catalogs[static_cast<std::size_t>(setting - kCatalogSetting)])
+                    : std::string_view(),
+                catalog_api,
+                5,
+                trs("Remove"),
+                false};
+            const Row &it = setting >= kCatalogSetting ? catalog_row : rows[setting];
             const Rect row{px - 16.0f, y, pw + 32.0f, 108.0f};
             if (focus == setting_focus_)
                 row_focus(row);
             else if (focus > first)
                 list.rounded_rect({px, y - 8.0f, pw, 1.0f}, 0, kInk.with_alpha(0.08f));
             list.circle(px + 28.0f, row.cy(), 28.0f, kInk.with_alpha(0.08f));
-            sign(list, rows[i].sign, px + 28.0f, row.cy(), kInk.with_alpha(0.9f));
-            ui::text(list, fonts.semibold, rows[i].label, px + 82.0f, row.y + 50.0f, 26, kInk);
+            sign(list, it.sign, px + 28.0f, row.cy(), kInk.with_alpha(0.9f));
+            ui::text(list, fonts.semibold, it.label, px + 82.0f, row.y + 50.0f, 26, kInk);
             ui::text(list, fonts.regular,
-                     rows[i].kind == 3 ? fonts.regular.font->fit(rows[i].value, 20, pw - 220.0f)
-                                       : rows[i].note,
+                     it.kind == 3   ? fonts.regular.font->fit(it.value, 20, pw - 220.0f)
+                     : it.kind == 5 ? fonts.regular.font->fit(it.note, 20, pw - 260.0f)
+                                    : it.note,
                      px + 82.0f, row.y + 84.0f, 20, kInk.with_alpha(0.6f));
             const float right = px + pw;
-            if (rows[i].kind == 1)
-                toggle(list, right, row.cy(), rows[i].on);
-            else if (rows[i].kind == 3)
+            if (it.kind == 1)
+                toggle(list, right, row.cy(), it.on);
+            else if (it.kind == 3)
                 ui::text(list, fonts.semibold, tr("Edit"), right - 16.0f, row.y + 50.0f, 24,
                          kAccent, gfx::Align::right);
-            else if (rows[i].kind == 0 || rows[i].kind == 4)
+            else if (it.kind == 0 || it.kind == 4)
             {
                 // The place (or the language), the room there, and arrows: left and right choose.
-                const bool several = rows[i].kind == 4 || locations_.size() > 1;
+                const bool several = it.kind == 4 || locations_.size() > 1;
                 const float tw =
-                    ui::text(list, fonts.semibold, rows[i].value, right - 40.0f,
+                    ui::text(list, fonts.semibold, it.value, right - 40.0f,
                              centred(row.cy() - 12.0f, 24), 24, kAccent, gfx::Align::right);
-                if (rows[i].kind == 0)
+                if (it.kind == 0)
                     ui::text(list, fonts.regular, room, right - 40.0f,
                              centred(row.cy() + 18.0f, 19), 19, kInk.with_alpha(0.6f),
                              gfx::Align::right);
@@ -4614,10 +4739,10 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
                           2.5f, arrows);
             }
             else
-                pill(list, fonts, rows[i].value,
-                     right - fonts.semibold.measure(rows[i].value, 40.0f * 0.58f) - 36.0f, row.cy(),
-                     40.0f, rows[i].on ? kAccent : kInk.with_alpha(0.12f),
-                     rows[i].on ? kOnAccent : kInk, 1.0f, kAllLayers);
+                pill(list, fonts, it.value,
+                     right - fonts.semibold.measure(it.value, 40.0f * 0.58f) - 36.0f, row.cy(),
+                     40.0f, it.on ? kAccent : kInk.with_alpha(0.12f), it.on ? kOnAccent : kInk,
+                     1.0f, kAllLayers);
             y += 106.0f;
         }
         // The notes under the rooms, below "Switch rooms" and inside the left column: some
@@ -4651,9 +4776,7 @@ void Screen::draw_panel(const ui::Fonts &fonts, std::uint32_t glass)
         float words = ui::text(list, fonts.regular, tr("Apps from "), px + 152.0f, panel.y + 136.0f,
                                22, kInk.with_alpha(0.62f));
         ui::text(list, fonts.semibold,
-                 active_catalog_url_ == catalog::kDefaultApi ? std::string_view("prosperostore.net")
-                 : active_with_official_ ? tr("prosperostore.net and your custom catalog")
-                                         : tr("your custom catalog"),
+                 fonts.semibold.font->fit(sources_label(true), 22, pw - 160.0f - words),
                  px + 152.0f + words, panel.y + 136.0f, 22, kAccent);
         words = ui::text(list, fonts.regular, tr("Brought to you by "), px + 152.0f,
                          panel.y + 168.0f, 22, kInk.with_alpha(0.62f));

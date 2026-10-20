@@ -75,10 +75,18 @@ class Service
     // Set before start(): whether to ask the catalog for a newer store.
     bool check_updates = true;
     // Captured at start; changes in Settings apply on the next launch.
-    std::string catalog_url = catalog::kDefaultApi;
-    bool verify_signatures = true;
-    // With a custom catalog set: keep the official one and add the custom catalog's apps.
-    bool with_official = false;
+    // The custom catalogs, in the order the settings list them; none for the official
+    // catalog alone. With with_official the official catalog is the one shown, signed and
+    // checked as ever, and these add their apps to it; without it the first custom catalog
+    // takes its place and the rest add to that.
+    struct CustomCatalog
+    {
+        std::string api;   // its API directory (catalog::github_catalog_api)
+        std::string label; // its name, "owner/repository", said on its apps' pages
+    };
+    std::vector<CustomCatalog> catalogs;
+    bool verify_signatures = true; // of the custom catalogs; the official one always is
+    bool with_official = true;
     // Tests only: replaces the environment built from the console's configuration.
     std::optional<install::Environment> installer_environment;
     bool start();

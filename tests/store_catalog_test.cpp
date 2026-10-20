@@ -35,6 +35,49 @@ int main()
         assert(base == kDefaultApi);
     }
     assert(!normalize_api("https://dev.example/" + std::string(512, 'a'), base));
+    // A catalog kept on GitHub, named as owner/repository in any of the ways it is written.
+    std::string name = "unchanged";
+    for (const char *typed :
+         {"janedoe/ps5-homebrew-catalog", " JaneDoe/ps5-homebrew-catalog ",
+          "github.com/janedoe/ps5-homebrew-catalog",
+          "https://github.com/janedoe/ps5-homebrew-catalog",
+          "https://www.github.com/janedoe/ps5-homebrew-catalog/",
+          "HTTPS://GitHub.com/janedoe/ps5-homebrew-catalog.git", "@janedoe/ps5-homebrew-catalog"})
+    {
+        assert(github_catalog(typed, name));
+        assert(name == "janedoe/ps5-homebrew-catalog");
+    }
+    assert(github_catalog_api("janedoe/ps5-homebrew-catalog") ==
+           "https://janedoe.github.io/ps5-homebrew-catalog/api/v1/");
+    assert(github_catalog_api("JaneDoe/My.Catalog_2") ==
+           "https://janedoe.github.io/My.Catalog_2/api/v1/");
+    assert(github_catalog_api("not a repository").empty());
+    name = "unchanged";
+    for (const char *bad :
+         {"", "janedoe", "janedoe/", "/catalog", "janedoe/a/b", "jane doe/catalog",
+          "-janedoe/catalog", "jane--doe/catalog", "janedoe/.", "janedoe/..", "janedoe/cat alog",
+          "janedoe/cat/alog", "https://gitlab.com/janedoe/catalog", "janedoe/catalog?x=1",
+          "janedoe/catalog#readme", "https://github.com/janedoe/catalog/releases",
+          "janedoe/catalog\nverify_signatures=0"})
+    {
+        assert(!github_catalog(bad, name));
+        assert(name == "unchanged");
+    }
+    assert(!github_catalog(std::string(40, 'a') + "/catalog", name));
+    assert(github_catalog(std::string(39, 'a') + "/catalog", name));
+    assert(!github_catalog("janedoe/" + std::string(101, 'a'), name));
+    assert(github_catalog("janedoe/" + std::string(100, 'a'), name));
+    // An address kept by an older version, read back as a name when it is a repository's.
+    assert(github_catalog_of("https://janedoe.github.io/ps5-homebrew-catalog/api/v1/") ==
+           "janedoe/ps5-homebrew-catalog");
+    assert(github_catalog_of(std::string(kApiMirror) + "api/v1/") ==
+           "darkxex/ps5-homebrew-catalog");
+    for (const char *url :
+         {"https://dev.example/api/v1/", "https://janedoe.github.io/api/v1/",
+          "https://janedoe.github.io/catalog/", "https://janedoe.github.io//api/v1/",
+          "https://janedoe.github.io/a/b/api/v1/", "http://janedoe.github.io/catalog/api/v1/",
+          "https://github.io/catalog/api/v1/", "https://janedoe.github.io.evil/catalog/api/v1/"})
+        assert(github_catalog_of(url).empty());
     // The mirror is one path on a shared host: nothing else on that host is the catalog.
     assert(official_url("https://darkxex.github.io/ps5-homebrew-catalog/api/v1/index.json"));
     assert(official_url("https://darkxex.github.io/ps5-homebrew-catalog/api/v1/icons/"

@@ -226,35 +226,45 @@ it is on, the store starts a little slower.
 **Settings → Development options** has two switches, one for each source:
 
 - **Official catalog** - prosperostore.net, always signature-checked. On by default.
-- **Custom catalog** - your own feed. Switching it on asks for its address when none is set.
+- **Custom catalogs** - your own catalogs, kept on GitHub. Switching it on asks for the first one
+  when none is listed.
 
-With both on, the custom catalog's apps are added to prosperostore.net's and carry a "Custom catalog"
-mark on their page. Where both list the same title ID, the official app is the one shown, and the
-store says how many custom apps were hidden. With only the custom catalog on, it replaces the
-official one, which is what you want to test a new version of an app that is already listed. The
-store needs one catalog, so the official one can only be switched off while a custom one is in
-use.
+A custom catalog is a GitHub repository laid out like
+[ps5-homebrew-catalog](https://github.com/darkxex/ps5-homebrew-catalog), whose GitHub Pages site
+publishes the store API. **Add a GitHub catalog** asks for its name as `owner/repository` (the
+repository's page address, `https://github.com/owner/repository`, is accepted too); the store
+reads it from `https://owner.github.io/repository/api/v1/`. GitHub is the only host in this
+release. Up to eight catalogs can be listed; each has its own row with its address and a
+**Remove** button, and each is read when the store opens.
 
-**Custom catalog URL** is the HTTPS directory containing the feed, for example
-`https://example.com/api/v1/`: the API directory, not the website homepage, a GitHub repository
-URL or `index.json`. **Restore official catalog** goes back to prosperostore.net alone. Changes are
-saved at once and apply when you close and reopen ProsperoStore.
+With both switches on, the custom catalogs' apps are added to prosperostore.net's, in the order
+the catalogs were added, and each app's page names the catalog it came from. Where two catalogs
+list the same title ID, the earlier one's app is the one shown (prosperostore.net's first), and
+the store says how many apps were hidden. With only the custom catalogs on, the first one
+replaces the official catalog, which is what you want to test a new version of an app that is
+already listed; the others still add to it. The store needs one catalog, so the official one can
+only be switched off while a custom catalog is in use.
+
+**Restore official catalog** goes back to prosperostore.net alone with signature checks on; the
+catalogs stay listed, switched off. Changes are saved at once and apply when you close and reopen
+ProsperoStore. A single `Custom catalog URL` saved by an earlier version is carried over when it
+was a repository's GitHub Pages address, and dropped otherwise.
 
 **Verify custom catalog signatures** is on by default and uses the official catalog's built-in
-public keys, so it suits a copy of the signed official feed. For an independently published feed
-you can turn it off after confirming the warning; the store then labels the catalog **Signatures
-not checked**. Only do this with a publisher you trust: hashes detect changed downloads, but an
-unchecked publisher controls both the download address and its expected hash.
+public keys, so it suits a copy of the signed official feed. For an independently published
+catalog you can turn it off after confirming the warning; the store then labels the catalog
+**Signatures not checked**. Only do this with a publisher you trust: hashes detect changed
+downloads, but an unchecked publisher controls both the download address and its expected hash.
 
-Custom feeds must implement the [catalog API](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/api.md):
-schema-3 `manifest.json`, `index.json`, `versions.json`, and `apps/<TITLEID>.json`.
-The manifest must list the SHA-256 of each API JSON file. `manifest.sig` is required
-only while signature verification is on. API-file hashes, artifact hashes, ZIP
-validation and HTTPS certificate checks remain enforced. A custom feed's
-`artifact_url` may point at GitHub releases or at the custom catalog's own host
-(the same host and port as the Custom catalog URL, redirects included). Plain
-HTTP, self-signed TLS certificates, arbitrary JSON lists, and downloads from any
-other host are not supported.
+A custom catalog must publish the [catalog API](https://github.com/darkxex/ps5-homebrew-catalog/blob/main/docs/api.md)
+under `api/v1/` of its GitHub Pages site: schema-3 `manifest.json`, `index.json`,
+`versions.json`, and `apps/<TITLEID>.json`. A fork of ps5-homebrew-catalog builds it with its
+own workflow; build it with `--base /<repository>/` so the files name the Pages address they are
+served from. The manifest must list the SHA-256 of each API JSON file. `manifest.sig` is
+required only while signature verification is on. API-file hashes, artifact hashes, ZIP
+validation and HTTPS certificate checks remain enforced. A custom catalog's `artifact_url` must
+point at GitHub releases. Plain HTTP, self-signed TLS certificates, arbitrary JSON lists, and
+downloads from any other host are not supported.
 
 Each API URL and signature mode has its own catalog cache. Re-enabling verification
 never reuses an unchecked catalog; the official signed catalog retains its saved

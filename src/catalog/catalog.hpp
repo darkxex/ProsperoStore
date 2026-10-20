@@ -37,6 +37,17 @@ bool official_url(std::string_view url);
 inline constexpr const char *kDefaultApi = "https://prosperostore.net/api/v1/";
 // Empty input restores the official API; otherwise require an HTTPS directory URL.
 bool normalize_api(std::string_view value, std::string &out);
+// A homebrew catalog kept on GitHub, named as "owner/repository": a repository laid out like
+// ps5-homebrew-catalog, whose GitHub Pages site serves the store API. Accepts the shorthand as
+// typed, with or without "github.com/" or "https://github.com/" in front, a ".git" or a slash
+// at the end; out is the plain "owner/repository" (the owner in lower case, as GitHub treats
+// it). False, and out untouched, for anything that is not one repository's name.
+bool github_catalog(std::string_view typed, std::string &out);
+// The API directory of such a catalog: https://<owner>.github.io/<repository>/api/v1/.
+std::string github_catalog_api(std::string_view shorthand);
+// The reverse, for a saved address: "owner/repository" when the URL is a repository's GitHub
+// Pages API directory, empty otherwise.
+std::string github_catalog_of(std::string_view api);
 // A release file's address: github.com, GitHub's release file host after a redirect, or the
 // host of the custom catalog the user set (custom; ignored when it is an official address).
 bool artifact_url(std::string_view url, bool redirected = false, std::string_view custom = {});
@@ -67,9 +78,10 @@ struct Entry
     // Optional: the developer's own page and a place to support them (HTTPS addresses).
     std::string author_url, donate_url;
     std::uint64_t size = 0;
-    // Not from the catalog's files: set by the store on entries that come from the custom
-    // catalog shown beside the official one.
+    // Not from the catalog's files: set by the store on entries that come from a custom
+    // catalog shown beside the official one, with that catalog's name ("owner/repository").
     bool extra = false;
+    std::string catalog_label = {};
     // What the catalog's scan of the release file found. Advice, not a guarantee: the scan reads
     // the file and can miss things. Empty strings mean "not known", never "stays".
     std::string sandbox;       // "stays", "leaves", "unclear"

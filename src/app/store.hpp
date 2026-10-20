@@ -91,16 +91,22 @@ struct Settings
     // Records what the store does at each step, for a report: shown in About, written to
     // /data/prosperostore/debug-trace.txt (or a USB drive) and the kernel log.
     bool debug_log = false;
-    std::string catalog_url = catalog::kDefaultApi;
+    // The custom catalogs: each a GitHub repository laid out like ps5-homebrew-catalog, named
+    // "owner/repository" (catalog::github_catalog), whose GitHub Pages site serves its API. In
+    // the order they were added: where two list the same app, the earlier one's is shown.
+    std::vector<std::string> catalogs;
+    static constexpr std::size_t kMaxCatalogs = 8; // each one is read when the store opens
     // The two sources, each switched on or off by itself in Development options. Both on:
-    // the custom catalog's apps are added to prosperostore.net's. Never both off.
+    // the custom catalogs' apps are added to prosperostore.net's. Never both off.
     bool use_official = true;
     bool use_custom = false;
-    // The custom catalog is in use: switched on, and its address is not the official one.
+    // The custom catalogs are in use: switched on, and at least one is listed.
     bool custom_active() const
     {
-        return use_custom && catalog_url != catalog::kDefaultApi;
+        return use_custom && !catalogs.empty();
     }
+    // The API directory of each custom catalog, in order (catalog::github_catalog_api).
+    std::vector<std::string> catalog_urls() const;
     bool verify_signatures = true;
     std::string news_seen; // the newest news item that was read
     // Likes and comments from the apps' discussions on GitHub. On until the player says no:
@@ -197,9 +203,9 @@ class Screen
     void finish_job(bool ok, bool restart, std::string title, std::string body);
     void set_settings(Settings settings)
     {
-        active_catalog_url_ =
-            settings.custom_active() ? settings.catalog_url : std::string(catalog::kDefaultApi);
-        active_with_official_ = settings.custom_active() && settings.use_official;
+        active_catalogs_ =
+            settings.custom_active() ? settings.catalogs : std::vector<std::string>{};
+        active_with_official_ = !settings.custom_active() || settings.use_official;
         settings_ = std::move(settings);
         apply_language();
     }
@@ -215,11 +221,13 @@ class Screen
         return settings_;
     }
     bool settings_changed = false; // the frame loop saves them and clears this
-    bool pending_catalog_url = false;
-    void set_catalog_url(std::string_view value);
-    // The address keyboard was closed without an answer: a custom catalog that was just
-    // switched on, and has no address, goes off again.
-    void catalog_url_cancelled();
+    // The frame loop opens the keyboard for a catalog's name ("owner/repository") and hands
+    // what was typed to add_catalog.
+    bool pending_catalog_add = false;
+    void add_catalog(std::string_view typed);
+    // The keyboard was closed without an answer: custom catalogs that were just switched
+    // on, with none listed yet, go off again.
+    void catalog_add_cancelled();
     // The scanned folders apps can be installed to, with the room in each.
     void set_locations(std::vector<std::pair<std::string, std::uint64_t>> locations);
     // The running store: its title and the version it was built as.
@@ -448,8 +456,12 @@ class Screen
     // What the language row of Settings shows, and the next pick: automatic, then each language.
     std::string language_value() const;
     void turn_language(int turn);
-    std::string active_catalog_url_ = catalog::kDefaultApi;
-    bool active_with_official_ = false; // the custom catalog is shown beside the official one
+    // The custom catalogs in use since the store opened, and whether prosperostore.net is
+    // shown with them (always, when there are none).
+    std::vector<std::string> active_catalogs_;
+    bool active_with_official_ = true;
+    // Where the apps come from, in a few words: for the top bar and About.
+    std::string sources_label(bool about) const;
     std::vector<std::pair<std::string, std::uint64_t>> locations_;
     std::string self_id_, self_version_, self_location_ = "/data/homebrew";
     bool restart_needed_ = false;
@@ -479,7 +491,8 @@ class Screen
         quit,
         disable_signatures,
         store_update,
-        replace
+        replace,
+        remove_catalog // ask_id_ is the catalog's name
     } ask_ = Ask::none;
     enum class StoreOffer
     {
