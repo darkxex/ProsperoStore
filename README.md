@@ -223,7 +223,8 @@ it is on, the store starts a little slower.
 
 ## Custom catalogs
 
-**Settings → Development options** has two switches, one for each source:
+**Settings → Catalogs** (its own room in the panel, also reached from the Catalogs row of
+Settings) has two switches, one for each source:
 
 - **Official catalog** - prosperostore.net, always signature-checked. On by default.
 - **Custom catalogs** - your own catalogs, kept on GitHub. Switching it on asks for the first one
@@ -327,7 +328,7 @@ Ideas for what a solid app store should do, in no promised order. Some need chan
 ### For developers
 
 - **Beta channel** - opt in to an app's pre-releases.
-- **Install a test build** - from a pull request or an address, in Development options.
+- **Install a test build** - from a pull request or an address, in the Catalogs room.
 - **Announcements** - a short message from the catalog shown when the store opens.
 
 ### Polish

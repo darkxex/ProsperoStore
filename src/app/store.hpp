@@ -247,7 +247,7 @@ class Screen
         self_id_ = std::move(id);
         self_version_ = std::move(version);
     }
-    // Queue (0), Settings (1), About (2) or News (3), over whatever is on screen.
+    // Queue (0), Settings (1), Catalogs (2), About (3) or News (4), over whatever is on screen.
     void open_panel(int tab);
     // The titles running now; known is false when that can't be told, and
     // then nothing installed is changed.
@@ -472,7 +472,6 @@ class Screen
     };
     std::vector<Done> history_;
     bool panel_ = false;
-    bool development_options_ = false;
     int panel_tab_ = 1, queue_focus_ = 0, queue_first_ = 0, setting_focus_ = 0;
     hui::tween::Spring panel_value_;
     hui::ui::TextView about_, news_view_;
