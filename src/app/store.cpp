@@ -974,6 +974,10 @@ void Screen::set_catalog(std::vector<App> apps, std::string status, bool current
     if (found != visible_.end())
         focus_ = static_cast<int>(found - visible_.begin());
     details_ = details_ && found != visible_.end() && shown == previous;
+    // Until the player moves, Discover keeps its focus on the first shelf: the updates for them,
+    // which only appear once the installed apps are known, come first when there are any.
+    if (!focus_moved_ && !details_ && discover() && !shelves_.empty())
+        focus_ = shelves_.front().start + shelves_.front().pos;
     if (details_)
     {
         refresh_detail();
@@ -1519,6 +1523,7 @@ void Screen::update_home(const InputFrame &input, ui::Feedback &feedback)
             case Direction::none:
                 break;
             }
+            focus_moved_ |= focus_ != before;
             if (focus_ != before)
             {
                 auto &now = shelves_[static_cast<std::size_t>(shelf_of(focus_))];
@@ -1566,6 +1571,7 @@ void Screen::update_home(const InputFrame &input, ui::Feedback &feedback)
             case Direction::none:
                 break;
             }
+            focus_moved_ |= focus_ != before;
             if (focus_ != before) // rows further down sound a little lower
                 feedback.play(
                     audio::Cue::focus,

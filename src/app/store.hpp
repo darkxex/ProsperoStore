@@ -580,6 +580,7 @@ class Screen
     Sort sort_ = Sort::name;
 
     Zone zone_ = Zone::grid;
+    bool focus_moved_ = false; // the player has moved the focus in the grid since the store opened
     int section_ = 0, focus_ = 0, banner_ = 0, banner_previous_ = 0;
     int stage_pin_ = -1; // the app the stage keeps when the focus climbs from a shelf
     bool details_ = false, quit_ = false;
