@@ -2884,19 +2884,11 @@ void Screen::order(const App &app, Order::Kind kind)
     }
     else
         pending_order.location = settings_.location;
-    // The developer's request beats the setting and where an older version is: a new install or
-    // an update goes to internal storage, and the older copy is uninstalled once it is done.
-    if (kind == Order::Kind::install && app.detail && app.detail->internal_only)
-    {
+    // The developer's request beats the setting for a new install; an update, or an app that
+    // takes the place of another, stays where the app already is.
+    if (kind == Order::Kind::install && app.detail && app.detail->internal_only &&
+        app.installed.empty() && !other)
         pending_order.location = kInternalLocation;
-        if (!app.installed.empty() || other)
-        {
-            const auto &path = (other ? other : &app)->installed.front().path;
-            const auto old_location = path.substr(0, path.find_last_of('/'));
-            if (old_location != kInternalLocation && app.title_id != self_id_)
-                pending_order.remove_after = old_location;
-        }
-    }
     if (app.title_id == self_id_)
         pending_order.location = self_location_;
     if (kind == Order::Kind::install && app.detail)
@@ -3390,8 +3382,7 @@ void Screen::draw_action_box(const ui::Fonts &fonts, std::uint32_t glass, const 
         for (const auto &[path, free] : locations_)
             if (path == target)
                 where += "  \xC2\xB7  " + trf("{0} free", {size_text(free)});
-        if (!app.installed.empty() &&
-            !(target == kInternalLocation && state.primary == Order::Kind::install))
+        if (!app.installed.empty())
             where = app.installed.front().path;
         if (state.primary != Order::Kind::none)
             ui::text(list, fonts.regular, fonts.regular.font->fit(where, 18, w), cx, box.y + 396.0f,
