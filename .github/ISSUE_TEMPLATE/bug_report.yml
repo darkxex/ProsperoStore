@@ -18,7 +18,7 @@ body:
     id: version
     attributes:
       label: "App version"
-      description: "The release you installed, for example 01.000.114"
+      description: "The release you installed, for example 01.000.115"
     validations:
       required: true
   - type: input
