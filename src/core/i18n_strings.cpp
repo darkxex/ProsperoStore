@@ -966,23 +966,22 @@ const Row kStrings[] = {
       "Okumak için Options'a basıp Haberler'i açın.", "按 Options 键并打开“动态”进行阅读。"}},
     {{"Quick update", "Actualización rápida", "Mise à jour rapide", "Atualização rápida",
       "クイック更新", "Schnelles Update", "Snelle update", "Hızlı güncelleme", "快速更新"}},
-    {{"Quick update keeps your settings and other files. Clean install replaces the whole folder; "
-      "the old one is kept in \"previous\".",
+    {{"Quick update keeps your settings and other files. Clean install replaces the whole folder.",
       "La actualización rápida conserva tu configuración y demás archivos. La instalación limpia "
-      "reemplaza toda la carpeta; la anterior se guarda en \"previous\".",
+      "reemplaza toda la carpeta.",
       "La mise à jour rapide conserve vos réglages et autres fichiers. L'installation propre "
-      "remplace tout le dossier ; l'ancien est gardé dans \"previous\".",
+      "remplace tout le dossier.",
       "A atualização rápida mantém suas configurações e outros arquivos. A instalação limpa "
-      "substitui a pasta inteira; a anterior fica em \"previous\".",
+      "substitui a pasta inteira.",
       "クイック更新は設定などのファイルをそのまま残します。クリーンインストールはフォルダ全体を置き"
-      "換え、以前のものは「previous」に保管されます。",
+      "換えます。",
       "Das schnelle Update behält deine Einstellungen und andere Dateien. Die saubere Installation "
-      "ersetzt den ganzen Ordner; der alte bleibt in \"previous\".",
+      "ersetzt den ganzen Ordner.",
       "De snelle update behoudt je instellingen en andere bestanden. De schone installatie "
-      "vervangt de hele map; de oude blijft in \"previous\".",
+      "vervangt de hele map.",
       "Hızlı güncelleme ayarlarınızı ve diğer dosyalarınızı korur. Temiz kurulum klasörün tamamını "
-      "değiştirir; eskisi \"previous\" içinde saklanır.",
-      "快速更新会保留你的设置和其他文件。全新安装会替换整个文件夹；旧文件夹保存在“previous”中。"}},
+      "değiştirir.",
+      "快速更新会保留你的设置和其他文件。全新安装会替换整个文件夹。"}},
     {{"The older copy in {0} was removed.", "La copia anterior en {0} se eliminó.",
       "L'ancienne copie dans {0} a été supprimée.", "A cópia anterior em {0} foi removida.",
       "{0}の古いコピーを削除しました。", "Die ältere Kopie in {0} wurde entfernt.",

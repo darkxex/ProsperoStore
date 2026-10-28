@@ -1754,7 +1754,7 @@ void Screen::update_page(const InputFrame &input, ui::Feedback &feedback)
             dialog_.open({ui::StatusKind::question,
                           trf("Update {0}?", {shown.name}),
                           trs("Quick update keeps your settings and other files. Clean install "
-                              "replaces the whole folder; the old one is kept in \"previous\"."),
+                              "replaces the whole folder."),
                           {{trs("Quick update"), ui::ButtonKind::primary},
                            {trs("Clean install")},
                            {trs("Cancel")}}},
