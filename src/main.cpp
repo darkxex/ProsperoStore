@@ -663,7 +663,7 @@ int main()
             const bool accepted =
                 order.kind == store::Order::Kind::install
                     ? service.request_install(order.entry, order.location, order.replace,
-                                              order.remove_after)
+                                              order.remove_after, order.overwrite)
                 : order.kind == store::Order::Kind::adopt
                     ? service.request_adopt(order.entry, order.location)
                 : order.kind == store::Order::Kind::uninstall

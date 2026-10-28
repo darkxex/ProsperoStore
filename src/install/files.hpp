@@ -30,4 +30,11 @@ bool list_files(const std::string &folder, std::size_t limit, std::vector<std::s
 // Removes a file or a whole folder without following links. True when nothing
 // is left at path, including when nothing was there.
 bool remove_tree(const std::string &path);
+// Moves every file of the folder from into the folder to, on the same filesystem, replacing the
+// file of the same name and making the folders it needs; whatever else is in to stays. Never
+// follows a link, and refuses a name that is a file on one side and a folder on the other.
+// sce_sys/param.json goes last, so the version on disk changes only once the rest is in place.
+// It is not cancellable: a half-applied update is worse than a finished one. On failure some
+// files may have moved.
+bool overlay_tree(const std::string &from, const std::string &to, std::string &error);
 } // namespace store::install

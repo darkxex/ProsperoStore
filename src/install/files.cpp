@@ -238,4 +238,50 @@ bool remove_tree(const std::string &path)
             return false;
     return true;
 }
+
+bool overlay_tree(const std::string &from, const std::string &to, std::string &error)
+{
+    error = "The update could not be applied";
+    std::vector<std::string> files, folders;
+    if (kind(from) != Kind::directory || kind(to) != Kind::directory ||
+        !collect(from, 0, files, folders))
+        return false;
+    constexpr const char *kLast = "/sce_sys/param.json";
+    const auto relative = [&](const std::string &path) { return path.substr(from.size()); };
+    // Every folder first, so an empty one in the update exists afterwards too. A folder comes
+    // after the ones inside it, so each is made with its parents.
+    for (const auto &folder : folders)
+    {
+        const auto rest = relative(folder);
+        for (std::size_t end = 0; end != rest.npos && !rest.empty();)
+        {
+            end = rest.find('/', end + 1);
+            if (!make_directory(to + rest.substr(0, end)))
+                return false;
+        }
+    }
+    std::vector<std::string> ordered;
+    std::string last;
+    for (const auto &file : files)
+    {
+        if (relative(file) == kLast)
+            last = file;
+        else
+            ordered.push_back(file);
+    }
+    if (!last.empty())
+        ordered.push_back(last);
+    for (const auto &file : ordered)
+    {
+        const auto destination = to + relative(file);
+        const auto present = kind(destination);
+        if (kind(file) != Kind::file || (present != Kind::absent && present != Kind::file))
+            return false;
+        if (rename(file.c_str(), destination.c_str()) != 0)
+            return false;
+    }
+    sync_directory(to);
+    error.clear();
+    return true;
+}
 } // namespace store::install

@@ -686,6 +686,37 @@ Result apply(const Environment &environment, const Request &request, net::Contro
     }
     else if (kind(paths.target) != Kind::absent)
         return abandon("The app was installed by something else meanwhile");
+    if (update && request.overwrite && !self)
+    {
+        // The new files go over the installed ones, one rename each, param.json last. Nothing is
+        // set aside: what the new version doesn't bring stays where it was.
+        journal.state = "overwrite";
+        journal.content_version = result.version;
+        journal.release_tag = entry.version.substr(0, 128);
+        journal.digest = entry.digest;
+        journal.catalog_id = catalog_id;
+        if (!write_journal(environment, paths, journal))
+        {
+            journal.state = "staging";
+            return abandon("The transaction could not be recorded");
+        }
+        STORE_STEP("journaled");
+        progress.phase = static_cast<int>(Phase::activating);
+        if (!overlay_tree(paths.staged, paths.target, error))
+            return abandon(error + ". Repeat the update, or install it clean.");
+        sync_directory(request.location);
+        STORE_STEP("placed");
+        if (!write_receipt(environment, paths, id, request.location, result.version, entry.version,
+                           entry.digest, catalog_id))
+            return fail("Updated, but not recorded yet. Restart ProsperoStore to finish.");
+        STORE_STEP("recorded");
+        refresh_registered(environment, id, paths.target);
+        if (!discard(environment, paths.staged) || !clear_journal(environment, paths))
+            return fail("Updated, but the transaction could not be closed.");
+        progress.phase = static_cast<int>(Phase::idle);
+        result.ok = true;
+        return result;
+    }
     journal.state = update ? "swap" : "activate";
     journal.content_version = result.version;
     journal.release_tag = entry.version.substr(0, 128);
@@ -915,6 +946,21 @@ Result recover(const Environment &environment)
         {
             if (!record())
                 return fail("An interrupted install could not be recorded");
+            result.version = version;
+        }
+        return close();
+    }
+    if (journal.state == "overwrite")
+    {
+        // The version on disk changes with the last file: if it is the new one, the update was
+        // applied whole and only the receipt may be missing. Otherwise the installed app is
+        // as it was, or partly updated, and the update can be repeated.
+        if (placed == Kind::directory && folder_version(paths.target, id, version) &&
+            version == journal.content_version)
+        {
+            if (!record())
+                return fail("An interrupted update could not be recorded");
+            refresh_registered(environment, id, paths.target);
             result.version = version;
         }
         return close();

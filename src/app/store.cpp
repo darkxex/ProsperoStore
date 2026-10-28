@@ -1734,6 +1734,25 @@ void Screen::update_page(const InputFrame &input, ui::Feedback &feedback)
                           {{trs("Cancel")}, {trs("Manage"), ui::ButtonKind::primary}}},
                          feedback);
         }
+        else if (state.primary == Order::Kind::install && !shown.installed.empty() &&
+                 shown.title_id != self_id_)
+        {
+            // An update can go over the installed folder or replace it: the player chooses.
+            ask_ = Ask::update_mode;
+            ask_id_ = shown.title_id;
+            dialog_.open({ui::StatusKind::question,
+                          trf("Update {0}?", {shown.name}),
+                          trs("Quick update puts the new files over the installed ones and keeps "
+                              "everything else, like your settings. Clean install replaces the "
+                              "app's whole folder; the previous one, with anything you added "
+                              "inside it, is kept in the store's \"previous\" folder until the "
+                              "next update."),
+                          {{trs("Cancel")},
+                           {trs("Clean install")},
+                           {trs("Quick update"), ui::ButtonKind::primary}},
+                          2},
+                         feedback);
+        }
         else
         {
             press_.trigger();
@@ -1971,6 +1990,16 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
             else
                 store_offer_ = StoreOffer::done;
         }
+    }
+    else if (dialog_.is_open() && ask_ == Ask::update_mode)
+    {
+        if (dialog_.handle(input, feedback) == ui::Event::activated && dialog_.choice() != 0)
+            for (const auto &app : apps_)
+                if (app.title_id == ask_id_)
+                {
+                    order(app, Order::Kind::install);
+                    pending_order.overwrite = dialog_.choice() == 2;
+                }
     }
     else if (dialog_.is_open())
     {

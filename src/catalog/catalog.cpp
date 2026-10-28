@@ -797,10 +797,10 @@ bool parse_journal(std::string_view body, Journal &out, std::string &error)
     const auto &state = candidate.state;
     const bool placing = operation == "install" || operation == "update";
     if (!(placing && state == "staging") && !(operation == "install" && state == "activate") &&
-        !(operation == "update" && state == "swap") &&
+        !(operation == "update" && (state == "swap" || state == "overwrite")) &&
         !(operation == "uninstall" && state == "remove"))
         return false;
-    if ((state == "activate" || state == "swap") &&
+    if ((state == "activate" || state == "swap" || state == "overwrite") &&
         (candidate.content_version.empty() || candidate.digest.empty()))
         return false;
     out = std::move(candidate);

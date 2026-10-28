@@ -92,6 +92,9 @@ struct Order
     // An app that asks for internal storage was installed elsewhere: once the new copy is in
     // place, the older one in this location is uninstalled. Empty for every other order.
     std::string remove_after;
+    // An update that lays the new files over the installed folder and keeps what they don't
+    // replace, instead of putting a new folder in place of it.
+    bool overwrite = false;
 };
 // What the player chose, kept in /data/prosperostore/settings.txt.
 struct Settings
@@ -518,6 +521,7 @@ class Screen
         disable_signatures,
         store_update,
         replace,
+        update_mode,   // ask_id_ is the app: update over its folder, or install clean
         remove_catalog // ask_id_ is the catalog's name
     } ask_ = Ask::none;
     enum class StoreOffer

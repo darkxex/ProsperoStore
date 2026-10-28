@@ -244,9 +244,9 @@ bool Service::load_policy(system::ScanPolicy &out, std::vector<std::string> *not
 }
 
 bool Service::request_install(const catalog::Entry &entry, const std::string &location,
-                              bool replace, const std::string &remove_after)
+                              bool replace, const std::string &remove_after, bool overwrite)
 {
-    return enqueue({Job::Kind::install, entry, location, replace, remove_after});
+    return enqueue({Job::Kind::install, entry, location, replace, remove_after, overwrite});
 }
 
 bool Service::request_adopt(const catalog::Entry &entry, const std::string &location)
@@ -568,7 +568,8 @@ void Service::run_installer()
         else
             result = install::apply(environment,
                                     {job.entry, job.location, minimum,
-                                     job.entry.console_id() == environment.self, job.replace},
+                                     job.entry.console_id() == environment.self, job.replace,
+                                     job.overwrite},
                                     job_control_, progress_);
         hui::sys::log("[STORE] job id=%s operation=%s ok=%d version=%s error=%s %s",
                       job.entry.id.c_str(), result.operation.c_str(), result.ok,

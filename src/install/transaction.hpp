@@ -84,6 +84,10 @@ struct Request
     // Another app with this title ID is installed there and this one takes its place: the
     // version need not be newer than the installed one.
     bool replace = false;
+    // An update that lays the new version's files over the installed folder instead of
+    // replacing it: what the new version doesn't bring stays where it was, and the previous
+    // folder is not kept. Ignored for an install and for the store itself.
+    bool overwrite = false;
 };
 struct Result
 {

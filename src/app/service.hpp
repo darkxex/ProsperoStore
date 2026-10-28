@@ -112,8 +112,10 @@ class Service
     // Never block: false means "ask again next frame" (or the queue is full).
     // location is the scanned folder that holds, or will hold, the app's folder.
     // remove_after: a location whose copy of the app is uninstalled once this install is done.
+    // overwrite: an update that lays the new files over the installed folder (Request::overwrite).
     bool request_install(const catalog::Entry &entry, const std::string &location,
-                         bool replace = false, const std::string &remove_after = {});
+                         bool replace = false, const std::string &remove_after = {},
+                         bool overwrite = false);
     bool request_uninstall(const std::string &id, const std::string &location,
                            const std::string &console_id = {});
     // Takes over an app installed by hand (a receipt is written, nothing else).
@@ -147,6 +149,7 @@ class Service
         std::string location;
         bool replace = false;     // a different app with this title ID is installed there
         std::string remove_after; // see Order::remove_after
+        bool overwrite = false;   // see Order::overwrite
     };
     static void *entry(void *self);
     static void *icon_entry(void *self);
