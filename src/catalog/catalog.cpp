@@ -678,6 +678,72 @@ bool parse_detail(std::string_view body, std::string_view expected, Entry &out, 
     return true;
 }
 
+bool parse_self_release(std::string_view body, Entry &out, std::string &error)
+{
+    error = "The release response is invalid";
+    Json json;
+    auto *root = json.read(body, kDetailLimit * 8);
+    if (!root || !yyjson_is_obj(root))
+        return false;
+    const auto flag = [&](const char *key)
+    {
+        auto *value = yyjson_obj_get(root, key);
+        return value && yyjson_is_bool(value) && yyjson_get_bool(value);
+    };
+    std::string tag;
+    if (flag("draft") || flag("prerelease") || !field(root, "tag_name", tag, 32, true))
+        return false;
+    // v1.000.114 is the release of contentVersion 01.000.114.
+    const std::string_view number = std::string_view(tag).substr(1);
+    if (!tag.starts_with('v') || number.size() != 9 ||
+        !std::all_of(number.begin(), number.end(),
+                     [](char c) { return (c >= '0' && c <= '9') || c == '.'; }) ||
+        number[1] != '.' || number[5] != '.')
+        return false;
+    Entry entry;
+    entry.id = "PPSA99000";
+    entry.name = "ProsperoStore";
+    entry.status = "available";
+    entry.format = "zip";
+    entry.version = std::string(number);
+    entry.content_version = "0" + entry.version;
+    if (!version(entry.content_version))
+        return false;
+    const std::string prefix =
+        "https://github.com/darkxex/ProsperoStore/releases/download/" + tag + "/";
+    auto *assets = yyjson_obj_get(root, "assets");
+    if (!assets || !yyjson_is_arr(assets))
+        return false;
+    std::size_t index = 0, count = 0;
+    yyjson_val *asset = nullptr;
+    yyjson_arr_foreach(assets, index, count, asset)
+    {
+        std::string name, address, digest;
+        auto *bytes = yyjson_obj_get(asset, "size");
+        if (!yyjson_is_obj(asset) || !field(asset, "name", name, 128) || name != "PPSA99000.zip")
+            continue;
+        std::array<std::uint8_t, 32> check{};
+        if (!field(asset, "browser_download_url", address, 512, true) ||
+            address != prefix + "PPSA99000.zip" || !field(asset, "digest", digest, 71, true) ||
+            !digest.starts_with("sha256:") ||
+            !hex_bytes(std::string_view(digest).substr(7), check) || !bytes ||
+            !yyjson_is_uint(bytes) || yyjson_get_uint(bytes) == 0 ||
+            yyjson_get_uint(bytes) > kArtifactLimit)
+            return false;
+        entry.artifact = std::move(address);
+        entry.digest = digest.substr(7);
+        entry.size = yyjson_get_uint(bytes);
+        std::string notes;
+        if (field(root, "body", notes, 32768))
+            entry.release_notes = std::move(notes);
+        out = std::move(entry);
+        error.clear();
+        return true;
+    }
+    error = "The release has no PPSA99000.zip";
+    return false;
+}
+
 bool parse_installed(std::string_view body, Entry &out, std::string &error)
 {
     error = "Installed app metadata is invalid";

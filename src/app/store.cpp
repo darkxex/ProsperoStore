@@ -423,10 +423,11 @@ void Screen::set_setup_notes(std::vector<std::string> notes)
                  kToastSeconds);
 }
 
-void Screen::offer_store_update(std::string version)
+void Screen::offer_store_update(std::string version, catalog::Entry release)
 {
     if (store_offer_ != StoreOffer::none)
         return;
+    store_offer_release_ = std::move(release);
     store_offer_version_ = std::move(version);
     store_offer_ = StoreOffer::waiting;
     store_offer_wait_ = 0.0f;
@@ -436,10 +437,14 @@ void Screen::open_store_offer(ui::Feedback &feedback)
 {
     const auto self = std::find_if(apps_.begin(), apps_.end(),
                                    [&](const auto &app) { return app.title_id == self_id_; });
-    const std::string notes =
-        self != apps_.end() && self->detail ? self->detail->release_notes : std::string{};
+    const bool from_release = !store_offer_release_.artifact.empty();
+    const std::string notes = from_release ? store_offer_release_.release_notes
+                              : self != apps_.end() && self->detail ? self->detail->release_notes
+                                                                    : std::string{};
     // The version as the console writes it (01.000.010), when the catalog gives it.
-    if (self != apps_.end() && !self->available_version.empty())
+    if (from_release)
+        store_offer_version_ = store_offer_release_.content_version;
+    else if (self != apps_.end() && !self->available_version.empty())
         store_offer_version_ = self->available_version;
     store_offer_notes_ = !notes.empty();
     if (store_offer_notes_)
@@ -473,13 +478,17 @@ void Screen::open_store_offer(ui::Feedback &feedback)
         buttons.push_back({trs("What's new")});
     buttons.push_back({trs("Update now"), ui::ButtonKind::primary});
     const int update_now = static_cast<int>(buttons.size()) - 1;
-    dialog_.open({ui::StatusKind::info,
-                  trf("ProsperoStore {0} is available", {store_offer_version_}),
-                  trf("You have {0}. The update is checked against the signed catalog, and "
-                      "ProsperoStore closes when it is installed.",
-                      {self_version_}),
-                  std::move(buttons), update_now},
-                 feedback);
+    dialog_.open(
+        {ui::StatusKind::info, trf("ProsperoStore {0} is available", {store_offer_version_}),
+         from_release ? trf("You have {0}. The catalog can't be reached, so this comes from the "
+                            "project's GitHub release and is checked against the SHA-256 digest "
+                            "GitHub lists for it. ProsperoStore closes when it is installed.",
+                            {self_version_})
+                      : trf("You have {0}. The update is checked against the signed catalog, and "
+                            "ProsperoStore closes when it is installed.",
+                            {self_version_}),
+         std::move(buttons), update_now},
+        feedback);
     store_offer_ = StoreOffer::asked;
 }
 
@@ -1921,8 +1930,8 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
         store_offer_wait_ += dt;
         const auto self = std::find_if(apps_.begin(), apps_.end(),
                                        [&](const auto &app) { return app.title_id == self_id_; });
-        const bool wanted = self != apps_.end() && !self->detail && self->detail_error.empty() &&
-                            store_offer_wait_ < 8.0f;
+        const bool wanted = store_offer_release_.artifact.empty() && self != apps_.end() &&
+                            !self->detail && self->detail_error.empty() && store_offer_wait_ < 8.0f;
         if (!wanted)
             open_store_offer(feedback);
         else if (!store_offer_detail_asked_ && pending_detail.empty())
@@ -1933,7 +1942,18 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
     }
     // "Update now": what Cross does on the store's own page, once its verified details
     // are here. If that can't be, the page's own words say why.
-    if (store_update_wanted_ && pending_order.kind == Order::Kind::none)
+    if (store_update_wanted_ && pending_order.kind == Order::Kind::none &&
+        !store_offer_release_.artifact.empty())
+    {
+        // The catalog was down: the release GitHub lists is what gets installed.
+        store_update_wanted_ = false;
+        pending_order = {};
+        pending_order.kind = Order::Kind::install;
+        pending_order.id = self_id_;
+        pending_order.location = self_location_;
+        pending_order.entry = store_offer_release_;
+    }
+    else if (store_update_wanted_ && pending_order.kind == Order::Kind::none)
     {
         store_update_wait_ += dt;
         const auto self = std::find_if(apps_.begin(), apps_.end(),

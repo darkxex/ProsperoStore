@@ -1537,6 +1537,32 @@ const Row kStrings[] = {
     {{"Update {0}?", "¿Actualizar {0}?", "Mettre à jour {0} ?", "Atualizar {0}?",
       "{0}を更新しますか?", "{0} aktualisieren?", "{0} bijwerken?", "{0} güncellensin mi?",
       "要更新 {0} 吗？"}},
+    {{"You have {0}. The catalog can't be reached, so this comes from the project's GitHub release "
+      "and is checked against the SHA-256 digest GitHub lists for it. ProsperoStore closes when it "
+      "is installed.",
+      "Tienes {0}. No se puede acceder al catálogo, así que esta versión viene del release del "
+      "proyecto en GitHub y se comprueba con el hash SHA-256 que GitHub lista para ella. "
+      "ProsperoStore se cierra cuando se instala.",
+      "Vous avez {0}. Le catalogue est injoignable : cette version vient de la release du projet "
+      "sur GitHub et est vérifiée avec l'empreinte SHA-256 que GitHub indique. ProsperoStore se "
+      "ferme une fois installée.",
+      "Você tem {0}. Não foi possível acessar o catálogo, então esta versão vem do release do "
+      "projeto no GitHub e é verificada com o hash SHA-256 que o GitHub lista para ela. O "
+      "ProsperoStore fecha quando ela é instalada.",
+      "現在のバージョンは{0}"
+      "です。カタログに接続できないため、プロジェクトのGitHubリリースから取得し、GitHubが示すSHA-"
+      "256ダイジェストで検証します。インストールが終わるとProsperoStoreは閉じます。",
+      "Du hast {0}. Der Katalog ist nicht erreichbar, daher stammt dieses Update aus dem "
+      "GitHub-Release des Projekts und wird mit dem SHA-256-Hash geprüft, den GitHub dafür angibt. "
+      "ProsperoStore schließt sich, wenn es installiert ist.",
+      "Je hebt {0}. De catalogus is niet bereikbaar, dus deze update komt uit de GitHub-release "
+      "van het project en wordt gecontroleerd met de SHA-256-hash die GitHub ervoor opgeeft. "
+      "ProsperoStore sluit als het is geïnstalleerd.",
+      "{0} sürümünü kullanıyorsunuz. Kataloğa ulaşılamıyor; bu güncelleme projenin GitHub "
+      "sürümünden gelir ve GitHub'ın bildirdiği SHA-256 özetiyle doğrulanır. Kurulunca "
+      "ProsperoStore kapanır.",
+      "你当前的版本是 {0}。无法连接目录，因此此更新来自项目的 GitHub 发布版，并用 GitHub 提供的 "
+      "SHA-256 摘要校验。安装完成后 ProsperoStore 会关闭。"}},
     {{"Your own catalogs. With both on, their apps are added.",
       "Tus propios catálogos. Con ambos activos, sus apps se añaden.",
       "Vos propres catalogues. Avec les deux activés, leurs apps sont ajoutées.",

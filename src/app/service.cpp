@@ -876,6 +876,8 @@ void Service::run()
     read_likes();
     if (refreshed && check_updates && !control_.cancelled.load())
         check_store_update();
+    else if (!refreshed && check_updates && !control_.cancelled.load())
+        check_store_release();
     if (refreshed && snapshot.accepted && !control_.cancelled.load())
     {
         // The catalog's news; a catalog without any says nothing.
@@ -1040,6 +1042,29 @@ void Service::check_store_update()
             return;
         notice.message = app->version;
     }
+    publish(std::move(notice));
+}
+
+void Service::check_store_release()
+{
+    std::string body, error;
+    const auto response = net::fetch(std::string(catalog::kSelfReleaseApi), net::Purpose::release,
+                                     256 * 1024, body, control_);
+    catalog::Entry entry;
+    if (!response.ok() || !catalog::parse_self_release(body, entry, error))
+    {
+        hui::sys::log("[STORE] release check: %s",
+                      response.ok() ? error.c_str() : response.error.c_str());
+        return;
+    }
+    hui::sys::log("[STORE] catalog down: GitHub lists %s, running %s",
+                  entry.content_version.c_str(), version_.c_str());
+    if (!catalog::update_available(version_, entry.content_version))
+        return;
+    Update notice;
+    notice.kind = Update::Kind::store_update;
+    notice.message = entry.version;
+    notice.entry = std::move(entry);
     publish(std::move(notice));
 }
 

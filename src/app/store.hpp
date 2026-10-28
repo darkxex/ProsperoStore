@@ -212,7 +212,9 @@ class Screen
     void notify(std::string title, std::string body);
     // A newer ProsperoStore is listed: asked once each time the store opens
     // (Update now / What's new / Skip), with the release notes in a view of their own.
-    void offer_store_update(std::string version);
+    // release: set when the catalog could not be reached and the offer comes from GitHub's newest
+    // release instead (Service::check_store_release); empty when the catalog lists the update.
+    void offer_store_update(std::string version, catalog::Entry release = {});
     // Whether this build and this console can install (reason says why not),
     // whether running apps can be told apart (updates and uninstalls need it),
     // and the scanned folder new apps go to.
@@ -532,6 +534,7 @@ class Screen
         done
     } store_offer_ = StoreOffer::none;
     std::string store_offer_version_;
+    catalog::Entry store_offer_release_;
     float store_offer_wait_ = 0.0f;
     bool store_offer_detail_asked_ = false, store_offer_notes_ = false, notes_open_ = false;
     bool store_update_wanted_ = false; // "Update now" was chosen: ordered once it can be

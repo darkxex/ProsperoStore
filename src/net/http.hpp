@@ -22,7 +22,8 @@ enum class Purpose
 {
     catalog,
     artifact,
-    comments // the likes and comments files: their one address, and nowhere it redirects to
+    comments, // the likes and comments files: their one address, and nowhere it redirects to
+    release   // the store's own latest release (catalog::kSelfReleaseApi): that address only
 };
 struct Control
 {

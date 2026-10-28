@@ -523,7 +523,7 @@ int main()
             else if (update.kind == store::Update::Kind::notice)
                 screen.notify(std::move(update.message), std::move(update.detail));
             else if (update.kind == store::Update::Kind::store_update)
-                screen.offer_store_update(std::move(update.message));
+                screen.offer_store_update(std::move(update.message), std::move(update.entry));
             else if (update.kind == store::Update::Kind::news)
                 screen.set_news(std::move(update.news));
             else if (update.kind == store::Update::Kind::setup)

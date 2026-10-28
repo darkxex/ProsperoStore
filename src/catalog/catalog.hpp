@@ -32,6 +32,10 @@ bool update_available(std::string_view installed, std::string_view available);
 inline constexpr std::string_view kApi = "https://prosperostore.net/api/v1/";
 inline constexpr std::string_view kApiMirror = "https://darkxex.github.io/ps5-homebrew-catalog/";
 bool api_url(std::string_view url);
+// Where the store looks for its own newest release when the catalog can't be reached: GitHub's
+// answer for the project's latest published release, and nowhere it redirects to.
+inline constexpr std::string_view kSelfReleaseApi =
+    "https://api.github.com/repos/darkxex/ProsperoStore/releases/latest";
 // One of the official catalog's own places: prosperostore.net, or its mirror (one repository's
 // pages on a host shared with everyone's, so the path is part of its identity).
 bool official_url(std::string_view url);
@@ -153,6 +157,10 @@ bool parse_manifest(std::string_view body, std::uint64_t highest, Manifest &out,
 // manifest that names a file they don't know, so a new file can't be listed there.
 bool verify_signed(std::string_view body, std::string_view signature,
                    std::span<const PublicKey> keys);
+// The store's own release as GitHub describes it (kSelfReleaseApi): a published release of the
+// project whose PPSA99000.zip lists a SHA-256 digest. out is the store's entry, as the catalog
+// would give it; false when anything is missing, so an update is never offered unchecked.
+bool parse_self_release(std::string_view body, Entry &out, std::string &error);
 bool parse_index(std::string_view body, std::vector<Entry> &out, std::string &error);
 bool parse_detail(std::string_view body, std::string_view expected, Entry &out, std::string &error);
 bool parse_versions(std::string_view body, std::map<std::string, std::string> &out,

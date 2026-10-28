@@ -159,6 +159,8 @@ class Service
     void run_installer();
     void publish(Update update);
     void check_store_update();
+    // The catalog can't be reached: GitHub's newest release is asked about instead.
+    void check_store_release();
     bool enqueue(Job job);
     // notes: what the user should check in ShadowMountPlus's settings, in plain words.
     bool load_policy(system::ScanPolicy &policy, std::vector<std::string> *notes = nullptr) const;

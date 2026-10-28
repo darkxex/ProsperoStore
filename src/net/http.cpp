@@ -67,9 +67,10 @@ Response get(const std::string &url, Purpose purpose, std::uint64_t limit, const
     std::string current = url;
     for (int redirects = 0; redirects <= 5; ++redirects)
     {
-        if (!(purpose == Purpose::catalog ? catalog::api_url(current)
-              : purpose == Purpose::comments
-                  ? social::data_url(current)
+        if (!(purpose == Purpose::catalog    ? catalog::api_url(current)
+              : purpose == Purpose::comments ? social::data_url(current)
+              : purpose == Purpose::release
+                  ? current == catalog::kSelfReleaseApi
                   : catalog::artifact_url(current, redirects > 0, custom)))
         {
             response.error = "The download address is not allowed";
