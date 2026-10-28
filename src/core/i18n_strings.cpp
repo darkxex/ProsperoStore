@@ -966,39 +966,23 @@ const Row kStrings[] = {
       "Okumak için Options'a basıp Haberler'i açın.", "按 Options 键并打开“动态”进行阅读。"}},
     {{"Quick update", "Actualización rápida", "Mise à jour rapide", "Atualização rápida",
       "クイック更新", "Schnelles Update", "Snelle update", "Hızlı güncelleme", "快速更新"}},
-    {{"Quick update puts the new files over the installed ones and keeps everything else, like "
-      "your settings. Clean install replaces the app's whole folder; the previous one, with "
-      "anything you added inside it, is kept in the store's \"previous\" folder until the next "
-      "update.",
-      "La actualización rápida pone los archivos nuevos sobre los instalados y conserva todo lo "
-      "demás, como tu configuración. La instalación limpia reemplaza la carpeta completa de la "
-      "app; la anterior, con lo que hayas añadido dentro, se guarda en la carpeta \"previous\" de "
-      "la tienda hasta la siguiente actualización.",
-      "La mise à jour rapide place les nouveaux fichiers par-dessus les fichiers installés et "
-      "conserve tout le reste, comme vos réglages. L'installation propre remplace tout le dossier "
-      "de l'app ; l'ancien, avec ce que vous y aviez ajouté, est conservé dans le dossier "
-      "\"previous\" de la boutique jusqu'à la prochaine mise à jour.",
-      "A atualização rápida coloca os arquivos novos sobre os instalados e mantém todo o resto, "
-      "como suas configurações. A instalação limpa substitui a pasta inteira do app; a anterior, "
-      "com o que você tenha adicionado nela, fica na pasta \"previous\" da loja até a próxima "
-      "atualização.",
-      "クイック更新は、新しいファイルをインストール済みのファイルの上に置き、設定などそれ以外はその"
-      "まま残します。クリーンインストールはアプリのフォルダ全体を置き換え、以前のフォルダは、中に追"
-      "加したものも含め、次の更新までストアの「previous」フォルダに保管されます。",
-      "Das schnelle Update legt die neuen Dateien über die installierten und behält alles andere, "
-      "etwa deine Einstellungen. Die saubere Installation ersetzt den ganzen Ordner der App; der "
-      "vorherige, samt allem, was du darin abgelegt hast, bleibt bis zum nächsten Update im Ordner "
-      "\"previous\" des Stores.",
-      "Bij de snelle update komen de nieuwe bestanden over de geïnstalleerde en blijft al het "
-      "andere behouden, zoals je instellingen. Bij de schone installatie wordt de hele map van de "
-      "app vervangen; de vorige, met alles wat je erin hebt gezet, blijft tot de volgende update "
-      "in de map \"previous\" van de store.",
-      "Hızlı güncelleme yeni dosyaları yüklü olanların üzerine koyar ve ayarlarınız gibi geri "
-      "kalan her şeyi korur. Temiz kurulum uygulamanın klasörünün tamamını değiştirir; öncekisi, "
-      "içine eklediklerinizle birlikte, bir sonraki güncellemeye kadar mağazanın \"previous\" "
-      "klasöründe saklanır.",
-      "快速更新会把新文件覆盖到已安装的文件上，并保留其余内容，例如你的设置。全新安装会替换应用的整"
-      "个文件夹；旧文件夹及你放进去的内容会保留在商店的“previous”文件夹中，直到下次更新。"}},
+    {{"Quick update keeps your settings and other files. Clean install replaces the whole folder; "
+      "the old one is kept in \"previous\".",
+      "La actualización rápida conserva tu configuración y demás archivos. La instalación limpia "
+      "reemplaza toda la carpeta; la anterior se guarda en \"previous\".",
+      "La mise à jour rapide conserve vos réglages et autres fichiers. L'installation propre "
+      "remplace tout le dossier ; l'ancien est gardé dans \"previous\".",
+      "A atualização rápida mantém suas configurações e outros arquivos. A instalação limpa "
+      "substitui a pasta inteira; a anterior fica em \"previous\".",
+      "クイック更新は設定などのファイルをそのまま残します。クリーンインストールはフォルダ全体を置き"
+      "換え、以前のものは「previous」に保管されます。",
+      "Das schnelle Update behält deine Einstellungen und andere Dateien. Die saubere Installation "
+      "ersetzt den ganzen Ordner; der alte bleibt in \"previous\".",
+      "De snelle update behoudt je instellingen en andere bestanden. De schone installatie "
+      "vervangt de hele map; de oude blijft in \"previous\".",
+      "Hızlı güncelleme ayarlarınızı ve diğer dosyalarınızı korur. Temiz kurulum klasörün tamamını "
+      "değiştirir; eskisi \"previous\" içinde saklanır.",
+      "快速更新会保留你的设置和其他文件。全新安装会替换整个文件夹；旧文件夹保存在“previous”中。"}},
     {{"The older copy in {0} was removed.", "La copia anterior en {0} se eliminó.",
       "L'ancienne copie dans {0} a été supprimée.", "A cópia anterior em {0} foi removida.",
       "{0}の古いコピーを削除しました。", "Die ältere Kopie in {0} wurde entfernt.",

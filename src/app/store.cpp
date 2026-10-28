@@ -1749,17 +1749,15 @@ void Screen::update_page(const InputFrame &input, ui::Feedback &feedback)
             // An update can go over the installed folder or replace it: the player chooses.
             ask_ = Ask::update_mode;
             ask_id_ = shown.title_id;
+            // One under the other, so each label can be read whole.
+            dialog_.style.buttons = ui::DialogButtons::stacked;
             dialog_.open({ui::StatusKind::question,
                           trf("Update {0}?", {shown.name}),
-                          trs("Quick update puts the new files over the installed ones and keeps "
-                              "everything else, like your settings. Clean install replaces the "
-                              "app's whole folder; the previous one, with anything you added "
-                              "inside it, is kept in the store's \"previous\" folder until the "
-                              "next update."),
-                          {{trs("Cancel")},
+                          trs("Quick update keeps your settings and other files. Clean install "
+                              "replaces the whole folder; the old one is kept in \"previous\"."),
+                          {{trs("Quick update"), ui::ButtonKind::primary},
                            {trs("Clean install")},
-                           {trs("Quick update"), ui::ButtonKind::primary}},
-                          2},
+                           {trs("Cancel")}}},
                          feedback);
         }
         else
@@ -2013,12 +2011,12 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
     }
     else if (dialog_.is_open() && ask_ == Ask::update_mode)
     {
-        if (dialog_.handle(input, feedback) == ui::Event::activated && dialog_.choice() != 0)
+        if (dialog_.handle(input, feedback) == ui::Event::activated && dialog_.choice() != 2)
             for (const auto &app : apps_)
                 if (app.title_id == ask_id_)
                 {
                     order(app, Order::Kind::install);
-                    pending_order.overwrite = dialog_.choice() == 2;
+                    pending_order.overwrite = dialog_.choice() == 0;
                 }
     }
     else if (dialog_.is_open())
@@ -2179,6 +2177,8 @@ void Screen::update(const InputFrame &raw, float dt, ui::Feedback &feedback)
     article_.set_active(details_);
     article_.update(dt);
     dialog_.update(dt);
+    if (!dialog_.visible())
+        dialog_.style.buttons = ui::DialogButtons::row; // only the update question stacks them
     hold_.update(dt);
     if (chime_)
     {
