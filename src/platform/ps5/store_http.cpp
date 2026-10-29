@@ -152,7 +152,7 @@ Response request_once(const std::string &url, std::uint64_t limit, const Sink &s
         result = resources.http = sceHttpInit(resources.pool, resources.ssl, 4 * 1024 * 1024);
     if (result >= 0)
         result = resources.tmpl =
-            sceHttpCreateTemplate(resources.http, "ProsperoStore/01.000.115", 2, 0);
+            sceHttpCreateTemplate(resources.http, "ProsperoStore/01.000.116", 2, 0);
     if (result >= 0)
         result = sceHttpSetAutoRedirect(resources.tmpl, 0);
     if (result >= 0)
