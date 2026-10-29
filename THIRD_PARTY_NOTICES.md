@@ -63,7 +63,7 @@ source is copied or modified here.
 
 The helper build also uses the pinned `ps5log/1` header from
 [mpereiraesaa/ps5-agc-gears](https://github.com/mpereiraesaa/ps5-agc-gears/tree/1ae1f9182abd2770c131b97419034fb85173c2dc/native/ps5log),
-GPL-3.0-or-later, and the official PS5 Payload SDK v0.45. Those build inputs
+GPL-3.0-or-later, and the official PS5 Payload SDK v0.40. Those build inputs
 remain under ignored `.deps/lapy/`; the normal application toolchain remains
 the separately pinned Payload SDK v0.42.
 

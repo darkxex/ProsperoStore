@@ -16,6 +16,9 @@
 
 namespace
 {
+constexpr char request_path[] = "/download0/elevate_proc";
+constexpr char result_path[] = "/download0/lapy_owned_result";
+constexpr unsigned resident_polls = 30;
 constexpr unsigned cancellation_grace_polls = 20;
 constexpr useconds_t poll_interval_us = 50000;
 const char *selected_path = "none";
@@ -89,6 +92,35 @@ bool write_all(int descriptor, const void *data, std::size_t length) noexcept
     return true;
 }
 
+bool publish_request(pid_t pid) noexcept
+{
+    std::array<char, 80> temporary{};
+    std::array<char, 64> body{};
+    const int body_length =
+        std::snprintf(body.data(), body.size(), "{\"PID\":%ld}\n", static_cast<long>(pid));
+    const int path_length = std::snprintf(temporary.data(), temporary.size(),
+                                          "/download0/.elevate_proc.%ld", static_cast<long>(pid));
+    if (body_length <= 0 || static_cast<std::size_t>(body_length) >= body.size() ||
+        path_length <= 0 || static_cast<std::size_t>(path_length) >= temporary.size())
+        return false;
+
+    (void)unlink(temporary.data());
+    File output{open(temporary.data(), O_WRONLY | O_CREAT | O_EXCL, 0644)};
+    if (output.get() < 0 ||
+        !write_all(output.get(), body.data(), static_cast<std::size_t>(body_length)))
+    {
+        (void)unlink(temporary.data());
+        return false;
+    }
+    const int descriptor = output.release();
+    if (close(descriptor) != 0 || rename(temporary.data(), request_path) != 0)
+    {
+        (void)unlink(temporary.data());
+        return false;
+    }
+    return true;
+}
+
 bool verify_data(pid_t pid, int &open_error) noexcept
 {
     std::array<char, 80> path{};
@@ -139,6 +171,73 @@ bool wait_for_data(pid_t pid, unsigned polls, int &open_error, bool &proof_faile
         (void)usleep(poll_interval_us);
     }
     return false;
+}
+
+void report_result(int descriptor, bool data_ok, int open_error) noexcept
+{
+    std::array<char, 96> result{};
+    const int length = std::snprintf(result.data(), result.size(), "DATA_OK=%d OPEN_ERRNO=%d\n",
+                                     data_ok, open_error);
+    if (length > 0 && static_cast<std::size_t>(length) < result.size())
+        (void)write_all(descriptor, result.data(), static_cast<std::size_t>(length));
+}
+
+struct ResidentResult
+{
+    elevation::Status status;
+    bool allow_helper;
+};
+
+ResidentResult try_resident(pid_t pid) noexcept
+{
+    using elevation::Status;
+    File result{open(result_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)};
+    if (result.get() < 0)
+        return {Status::unavailable, true};
+    (void)fchmod(result.get(), 0644);
+    if (seteuid(geteuid()) != 0)
+        return {Status::prepare_failed, false};
+    if (!publish_request(pid))
+        return {Status::transport_error, true};
+
+    int open_error = 0;
+    bool proof_failed = false;
+    if (wait_for_data(pid, resident_polls, open_error, proof_failed))
+    {
+        report_result(result.get(), true, 0);
+        return {Status::ok, false};
+    }
+    if (proof_failed)
+    {
+        report_result(result.get(), false, open_error);
+        return {Status::apply_failed, false};
+    }
+
+    errno = 0;
+    if (unlink(request_path) != 0)
+    {
+        // A missing marker means a resident service claimed it. Never start a
+        // second helper for that launch; give the claimed request more time.
+        if (errno != ENOENT)
+            return {Status::transport_error, false};
+        if (wait_for_data(pid, cancellation_grace_polls, open_error, proof_failed))
+        {
+            report_result(result.get(), true, 0);
+            return {Status::ok, false};
+        }
+        report_result(result.get(), false, open_error);
+        return {proof_failed ? Status::apply_failed : Status::timeout, false};
+    }
+
+    // The marker was cancelled before fallback. Wait once more in case a
+    // resident read it immediately before cancellation, then choose one path.
+    if (wait_for_data(pid, cancellation_grace_polls, open_error, proof_failed))
+    {
+        report_result(result.get(), true, 0);
+        return {Status::ok, false};
+    }
+    (void)unlink(result_path);
+    return {proof_failed ? Status::apply_failed : Status::timeout, !proof_failed};
 }
 
 bool send_all(int socket, const void *data, std::size_t size) noexcept
@@ -285,6 +384,12 @@ elevation::Status elevation::request(Capability capability, const char *helper_p
     if (open_error == 0)
         return Status::apply_failed;
 
+    const ResidentResult resident = try_resident(pid);
+    if (!resident.allow_helper)
+    {
+        selected_path = "resident";
+        return resident.status;
+    }
     selected_path = "helper";
     const Status helper = run_helper(helper_path, message);
     if (helper != Status::ok)

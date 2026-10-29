@@ -21,9 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / ".deps/lapy"
 LAPY_COMMIT = "57fcc19b7f57e46c823d6f2a6c6233ebf3288079"
 LAPY = CACHE / f"PS5-Lapy-JB-Daemon-{LAPY_COMMIT[:7]}"
-SDK = CACHE / "ps5-payload-sdk-v0.45"
-SDK_URL = "https://github.com/ps5-payload-dev/sdk/releases/download/v0.45/ps5-payload-sdk.zip"
-SDK_SHA256 = "5fac64093d0e3e69f2584ce7935f24f703f622d9681f1495c85b9f00d1291a2c"
+SDK = CACHE / "ps5-payload-sdk-v0.42"
+SDK_URL = "https://github.com/ps5-payload-dev/sdk/releases/download/v0.42/ps5-payload-sdk.zip"
+SDK_SHA256 = "8cfbc7cd5811e719eb4f0c47eea668d3dc7b40bc8ab11c4a5031d40c23ec02da"
 PS5LOG = CACHE / "ps5log-1ae1f918"
 PS5LOG_URL = (
     "https://raw.githubusercontent.com/mpereiraesaa/ps5-agc-gears/"
@@ -88,7 +88,7 @@ def fetch_sdk():
         return
     if SDK.exists():
         raise RuntimeError(f"{SDK} is incomplete or does not match the pinned archive")
-    archive = CACHE / "ps5-payload-sdk-v0.45.zip"
+    archive = CACHE / "ps5-payload-sdk-v0.42.zip"
     download(SDK_URL, archive, SDK_SHA256)
     staging = Path(tempfile.mkdtemp(prefix="lapy-sdk-", dir=CACHE))
     try:

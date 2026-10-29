@@ -191,9 +191,8 @@ bool arm_marker() noexcept
     return fd >= 0;
 }
 
-// The command server is asked first: it refuses at once when nobody listens, so it costs nothing.
-// Then the request files: `full` waits ~1.5 s for them, otherwise ~0.3 s, when another way is known
-// to work and a loaded HEN answers within a few frames.
+// `full` waits ~1.5 s for the files, then asks the command server; otherwise ~0.3 s for the files
+// only, when another way is known to work and a loaded HEN answers within a few frames.
 Hen ask_hen(pid_t pid, bool full) noexcept
 {
     if (access(marker_path, F_OK) == 0)
@@ -205,12 +204,12 @@ Hen ask_hen(pid_t pid, bool full) noexcept
     (void)arm_marker();
     (void)seteuid(geteuid()); // the store's own credential, before a HEN changes it
     Hen result = Hen::cannot_request;
-    if (ask_etahen_server(pid) && wait_for_data(pid, full ? 60 : 18))
-        result = Hen::granted;
-    else if (publish_all(pid))
+    if (publish_all(pid))
     {
         result = wait_for_data(pid, full ? 90 : 18) ? Hen::granted : Hen::no_answer;
         withdraw_all();
+        if (full && result == Hen::no_answer && ask_etahen_server(pid) && wait_for_data(pid, 60))
+            result = Hen::granted;
     }
     (void)unlink(marker_path);
     return result;

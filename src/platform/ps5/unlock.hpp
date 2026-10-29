@@ -9,14 +9,15 @@ namespace store::ps5
 {
 // Gets /data (listable, readable, writable) for the store. Ways, in the order SwanStationPS5 tries
 // them:
-//  - etaHEN's command server on 127.0.0.1:9028, then a request file for a HEN that is loaded
-//    (etaHEN, OnionHEN, LegacyJB, PS5SX2 Helper);
-//  - the boilerplate's Lapy client (elevation::request), which sends the packaged helper straight
-//  to the ELF loader.
+//  - a request file for a HEN that is loaded (etaHEN, OnionHEN, LegacyJB, PS5SX2 Helper), then
+//  etaHEN's
+//    command server on 127.0.0.1:9028;
+//  - the boilerplate's Lapy client (elevation::request), resident service first, then the packaged
+//  helper.
 // The way that worked at the last start goes first. A marker file written before a HEN request and
 // removed after it makes the next start skip that way once if the request closed the store. Only ok
 // means /data was proved. Call once during single-threaded startup, like elevation::request.
 [[nodiscard]] elevation::Status unlock_filesystem() noexcept;
-// For diagnostics: "existing", "hen", "helper" or "none".
+// For diagnostics: "existing", "hen", "resident", "helper" or "none".
 [[nodiscard]] const char *unlock_route() noexcept;
 } // namespace store::ps5

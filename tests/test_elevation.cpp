@@ -1,5 +1,5 @@
 /*
- * ps5-native-app-boilerplate - one-shot Lapy client regression.
+ * ps5-native-app-boilerplate - resident/one-shot Lapy client regression.
  * Copyright (C) 2026 BlackBearReloaded
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
@@ -22,6 +22,7 @@ struct State
     bool prepare_fails{};
     bool request_open_fails{};
     bool corrupt_read{};
+    bool resident_claimed{};
     unsigned data_open_failures{};
     unsigned data_open_calls{};
     unsigned data_list_failures{};
@@ -214,6 +215,11 @@ extern "C"
 
     int unlink(const char *path) noexcept
     {
+        if (std::strcmp(path, "/download0/elevate_proc") == 0 && test::state.resident_claimed)
+        {
+            errno = ENOENT;
+            return -1;
+        }
         return 0;
     }
 
@@ -280,11 +286,38 @@ int main()
 
     test::reset();
     test::state.data_open_failures = 1;
+    assert(elevation::request(Capability::filesystem) == Status::ok);
+    assert(std::strcmp(elevation::path(), "resident") == 0);
+    assert(test::state.prepare_calls == 1 && test::state.socket_calls == 0);
+    assert(test::state.request == "{\"PID\":4242}\n");
+    assert(test::state.result == "DATA_OK=1 OPEN_ERRNO=0\n");
+
+    test::reset();
+    test::state.data_list_failures = 1;
+    assert(elevation::request(Capability::filesystem) == Status::ok);
+    assert(std::strcmp(elevation::path(), "resident") == 0);
+    assert(test::state.prepare_calls == 1 && test::state.data_list_calls == 2);
+
+    test::reset();
+    test::state.data_list_failures = 1000;
+    test::state.resident_claimed = true;
+    assert(elevation::request(Capability::filesystem) == Status::timeout);
+    assert(std::strcmp(elevation::path(), "resident") == 0);
+
+    test::reset();
+    test::state.data_open_failures = 51;
     test::helper_replies();
     assert(elevation::request(Capability::filesystem) == Status::ok);
     assert(std::strcmp(elevation::path(), "helper") == 0);
     assert(test::state.prepare_calls == 2 && test::state.socket_calls == 1);
     assert(test::state.sent.size() == 4 + 2 * sizeof(elevation::wire::Message));
+
+    test::reset();
+    test::state.data_open_failures = 1000;
+    test::state.resident_claimed = true;
+    assert(elevation::request(Capability::filesystem) == Status::timeout);
+    assert(std::strcmp(elevation::path(), "resident") == 0);
+    assert(test::state.socket_calls == 0);
 
     test::reset();
     test::state.data_open_failures = 1;
@@ -296,9 +329,8 @@ int main()
     test::reset();
     test::state.data_open_failures = 1;
     test::state.prepare_fails = true;
-    test::helper_replies();
     assert(elevation::request(Capability::filesystem) == Status::prepare_failed);
-    assert(test::state.socket_calls == 1);
+    assert(test::state.socket_calls == 0);
 
     test::reset();
     test::state.corrupt_read = true;

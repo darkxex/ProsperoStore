@@ -30,8 +30,9 @@ enum class Status : std::uint32_t
     timeout = 11,
 };
 
-// Call once during single-threaded startup. The packaged upstream helper is sent straight to the
-// local elfldr; no resident service is waited for. Only ok permits /data use.
+// Call once during single-threaded startup. A resident upstream Lapy service
+// gets the first bounded opportunity; otherwise the packaged upstream helper
+// is sent to the local elfldr. Only ok permits /data use.
 [[nodiscard]] Status request(Capability capability,
                              const char *helper_path = "/app0/lapy.elf") noexcept;
 [[nodiscard]] const char *path() noexcept;

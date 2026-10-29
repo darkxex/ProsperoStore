@@ -39,8 +39,9 @@ It is an alpha; the current version is the newest one on the
 > [PS5-Lapy-JB-Daemon](https://github.com/mpereiraesaa/PS5-Lapy-JB-Daemon).** The PS5 jailbreak
 > environment must provide [ShadowMountPlus](https://github.com/drakmor/ShadowMountPlus)
 > ([1.7beta4](https://github.com/drakmor/ShadowMountPlus/releases/tag/1.7beta4) or newer
-> recommended) and a local ELF loader on TCP port 9021. The store sends the packaged helper over that local connection, so no
-> separate Lapy payload is needed. Installs, updates and uninstalls have run on firmware 6.02 and 12.70. Other
+> recommended) and a local ELF loader on TCP port 9021. If a resident Lapy service is already running, the store asks
+> it first; otherwise it sends the packaged helper over that local connection, so no separate Lapy
+> payload is needed. Installs, updates and uninstalls have run on firmware 6.02 and 12.70. Other
 > firmware is experimental; the helper refuses runtime layouts it does not know instead of guessing.
 
 ## Features
