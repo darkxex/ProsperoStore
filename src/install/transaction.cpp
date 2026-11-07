@@ -293,7 +293,7 @@ bool migrate_eden(const Environment &environment, const std::string &id, const s
     for (const auto *folder : kEdenFolders)
     {
         const auto source = from + "/" + folder, target = to + "/" + folder;
-        if (kind(source) == Kind::absent)
+        if (kind(source) == Kind::absent || empty_directory(source))
             continue;
         if (kind(source) != Kind::directory)
             return refuse("unexpected source: " + source);
@@ -308,7 +308,7 @@ bool migrate_eden(const Environment &environment, const std::string &id, const s
     for (const auto *folder : kEdenFolders)
     {
         const auto source = from + "/" + folder, target = to + "/" + folder;
-        if (kind(source) == Kind::absent)
+        if (kind(source) == Kind::absent || empty_directory(source))
             continue;
         if ((kind(target) != Kind::absent && rmdir(target.c_str()) != 0) ||
             rename(source.c_str(), target.c_str()) != 0 || !sync_directory(from) ||
@@ -688,6 +688,10 @@ Result apply(const Environment &environment, const Request &request, net::Contro
         return abandon("The app was installed by something else meanwhile");
     if (update && request.overwrite && !self)
     {
+        // Migration follows placement, so the overlay must not replace or merge legacy data.
+        if (id == "PPSA99008" && eden_legacy_data(paths.staged))
+            return abandon("This update includes legacy game files. Use a clean update to "
+                           "preserve your existing files.");
         // The new files go over the installed ones, one rename each, param.json last. Nothing is
         // set aside: what the new version doesn't bring stays where it was.
         journal.state = "overwrite";
@@ -706,6 +710,8 @@ Result apply(const Environment &environment, const Request &request, net::Contro
             return abandon(error + ". Repeat the update, or install it clean.");
         sync_directory(request.location);
         STORE_STEP("placed");
+        if (!migrate_eden(environment, id, paths.target, true, result))
+            return result.interrupted ? result : fail(result.error); // Keep the overwrite journal.
         if (!write_receipt(environment, paths, id, request.location, result.version, entry.version,
                            entry.digest, catalog_id))
             return fail("Updated, but not recorded yet. Restart ProsperoStore to finish.");
@@ -953,11 +959,13 @@ Result recover(const Environment &environment)
     if (journal.state == "overwrite")
     {
         // The version on disk changes with the last file: if it is the new one, the update was
-        // applied whole and only the receipt may be missing. Otherwise the installed app is
+        // applied whole; data migration and the receipt may still be pending. Otherwise the app is
         // as it was, or partly updated, and the update can be repeated.
         if (placed == Kind::directory && folder_version(paths.target, id, version) &&
             version == journal.content_version)
         {
+            if (!migrate_eden(environment, id, paths.target, true, result))
+                return result;
             if (!record())
                 return fail("An interrupted update could not be recorded");
             refresh_registered(environment, id, paths.target);

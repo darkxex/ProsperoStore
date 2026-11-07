@@ -675,8 +675,8 @@ void check_quick_update(const fs::path &base)
     assert(result.kept_at.empty() && !fs::exists(f.work / "previous" / kId));
 }
 
-// Legacy Eden data must remain discoverable across Store's whole-folder update.
-void check_eden_migration(const fs::path &base)
+// Legacy Eden data must remain discoverable across clean and quick updates.
+void check_eden_migration(const fs::path &base, bool overwrite)
 {
     const std::string id = "PPSA99008";
     const auto request = [&](Fixture &f, const std::string &version)
@@ -686,6 +686,7 @@ void check_eden_migration(const fs::path &base)
         r.entry.id = id;
         r.entry.digest = catalog::sha256(f.artifact);
         r.entry.size = f.artifact.size();
+        r.overwrite = overwrite;
         return r;
     };
     const auto seed = [&](Fixture &f)
@@ -727,8 +728,30 @@ void check_eden_migration(const fs::path &base)
         assert(get(fs::path(f.environment.data) / "prosperoeden/config/prosperoeden.json") ==
                config);
         assert(!fs::exists(f.work / "previous" / id / "assets/roms"));
+        if (overwrite)
+            assert(!fs::exists(f.location / id / "assets/roms"));
         // Future updates do not touch migrated data or save files.
         assert(f.apply(request(f, "01.000.110")).ok);
+        check_data(f);
+    }
+    for (const bool empty_source : {false, true})
+    {
+        // Empty release folders must not conflict with already migrated personal files.
+        Fixture f(base, empty_source ? "eden-empty-source" : "eden-empty-release");
+        seed(f);
+        const auto legacy = f.location / id / "assets/roms";
+        const auto data = fs::path(f.environment.data) / "prosperoeden";
+        fs::rename(legacy / "personal.bin", data / "roms/personal.bin");
+        if (!empty_source)
+            fs::remove(legacy);
+        auto update = request(f, "01.000.100");
+        auto files = app("01.000.100", id);
+        files.push_back({id + "/assets/roms/", ""});
+        f.artifact = zip(files);
+        update.entry.digest = catalog::sha256(f.artifact);
+        update.entry.size = f.artifact.size();
+        const auto result = f.apply(update);
+        assert(result.ok && f.settled());
         check_data(f);
     }
     for (const std::string issue : {"conflict", "custom", "bad-config", "link", "older-backup"})
@@ -827,7 +850,43 @@ void check_eden_migration(const fs::path &base)
         assert(tree(f.location / id) == old_app && f.settled());
         fs::remove_all(other);
     }
-    // A power cut between any two renames resumes under the existing swap journal.
+    if (overwrite)
+    {
+        // Before the overlay starts, recovery leaves legacy data with the old app.
+        Fixture f(base, "eden-before-overlay");
+        seed(f);
+        const auto old_app = tree(f.location / id);
+        f.environment.interrupt = [](const char *step) { return std::string(step) == "journaled"; };
+        assert(f.apply(request(f, "01.000.100")).interrupted);
+        f.environment.interrupt = nullptr;
+        assert(install::recover(f.environment).ok && f.settled());
+        assert(tree(f.location / id) == old_app);
+        assert(f.apply(request(f, "01.000.100")).ok && f.settled());
+        check_data(f);
+    }
+    for (const bool migrated : {false, true})
+    {
+        // A release cannot replace personal files before they have been migrated.
+        if (!overwrite)
+            break;
+        Fixture f(base, migrated ? "eden-migrated-archive-conflict" : "eden-archive-conflict");
+        seed(f);
+        if (migrated)
+            assert(f.apply(request(f, "01.000.090")).ok && f.settled());
+        const auto old_app = tree(f.location / id);
+        const auto old_data = tree(fs::path(f.environment.data) / "prosperoeden");
+        auto update = request(f, "01.000.100");
+        auto files = app("01.000.100", id);
+        files.push_back({id + "/assets/roms/personal.bin", "release data"});
+        f.artifact = zip(files);
+        update.entry.digest = catalog::sha256(f.artifact);
+        update.entry.size = f.artifact.size();
+        const auto result = f.apply(update);
+        assert(!result.ok && result.error.find("clean update") != std::string::npos);
+        assert(f.settled() && tree(f.location / id) == old_app);
+        assert(tree(fs::path(f.environment.data) / "prosperoeden") == old_data);
+    }
+    // A power cut between any two renames resumes under the recorded update journal.
     for (const std::string cut : {"placed", "eden-moved-keys", "eden-moved-firmware",
                                   "eden-moved-roms", "eden-moved-updates", "eden-moved-mods",
                                   "eden-moved-ryujinx", "eden-moved-save-import", "recorded"})
@@ -844,7 +903,7 @@ void check_eden_migration(const fs::path &base)
         assert(install::recover(f.environment).ok);
         check_data(f);
     }
-    // A conflict appearing after activation stops recovery with the backup intact.
+    // A conflict appearing after activation stops recovery with both copies intact.
     {
         Fixture f(base, "eden-recovery-conflict");
         seed(f);
@@ -855,7 +914,8 @@ void check_eden_migration(const fs::path &base)
         put(data / "roms/new.nsp", "new data");
         assert(!install::recover(f.environment).ok);
         assert(get(data / "roms/new.nsp") == "new data");
-        assert(get(f.work / "backup" / id / "assets/roms/personal.bin") == "roms data");
+        const auto legacy = overwrite ? f.location / id : f.work / "backup" / id;
+        assert(get(legacy / "assets/roms/personal.bin") == "roms data");
         assert(fs::exists(f.state / "journal.json"));
         fs::rename(data / "roms/new.nsp", f.root / "new.nsp");
         assert(install::recover(f.environment).ok);
@@ -1283,7 +1343,8 @@ int main(int argc, char **argv)
     check_running(root);
     check_transactions(root);
     check_quick_update(root);
-    check_eden_migration(root);
+    check_eden_migration(root / "eden-clean", false);
+    check_eden_migration(root / "eden-quick", true);
     check_self_update(root);
     check_interruptions(root);
     if (argc > 1)
