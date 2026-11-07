@@ -55,7 +55,12 @@ Response curl_request(const std::string &url, std::uint64_t limit, const Sink &s
             return 0;
         if (s.control.cancelled.load())
             return 0;
-        if (length > s.limit - s.received)
+        // A redirect may carry an HTML page larger than the requested file (e.g. a 64-byte
+        // signature). Discard it within its own bound; successful payloads keep their limit.
+        const bool redirect =
+            status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
+        const std::uint64_t body_limit = redirect ? 64u * 1024u : s.limit;
+        if (length > body_limit - s.received)
         {
             s.response.error = "The response exceeds its size limit";
             return 0;
