@@ -256,7 +256,9 @@ bool overlay_tree(const std::string &from, const std::string &to, std::string &e
         for (std::size_t end = 0; end != rest.npos && !rest.empty();)
         {
             end = rest.find('/', end + 1);
-            if (!make_directory(to + rest.substr(0, end)))
+            const auto destination = to + rest.substr(0, end);
+            // Match extracted app folders even when the process has a restrictive umask.
+            if (!make_directory(destination) || chmod(destination.c_str(), 0777) != 0)
                 return false;
         }
     }

@@ -17,6 +17,7 @@
 #include <map>
 #include <sstream>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -643,6 +644,37 @@ void check_transactions(const fs::path &base)
     assert(install::recover(f.environment).ok);
 }
 
+// A quick update must leave new app folders accessible just like a clean install.
+void check_quick_update(const fs::path &base)
+{
+    Fixture f(base, "quick-update");
+    assert(f.apply(f.request("01.000.001")).ok);
+    put(f.target() / "assets/personal.txt", "keep my settings");
+    const auto personal_permissions = fs::status(f.target() / "assets/personal.txt").permissions();
+    auto request = f.request("01.000.002");
+    auto files = app("01.000.002");
+    files.push_back({kId + "/assets/new/nested/file.txt", "new content"});
+    files.push_back({kId + "/assets/empty/nested/", ""});
+    f.artifact = zip(files);
+    request.entry.digest = catalog::sha256(f.artifact);
+    request.entry.size = f.artifact.size();
+    request.overwrite = true;
+    const auto old_mask = umask(0077);
+    const auto result = f.apply(request);
+    umask(old_mask);
+    assert(result.ok && result.operation == "update" && result.version == "01.000.002");
+    assert(f.managed() == "01.000.002" && f.settled());
+    assert(get(f.target() / "sce_sys/param.json") == metadata(kId, "01.000.002"));
+    assert(get(f.target() / "assets/new/nested/file.txt") == "new content");
+    assert(fs::is_empty(f.target() / "assets/empty/nested"));
+    assert(get(f.target() / "assets/personal.txt") == "keep my settings");
+    assert(fs::status(f.target() / "assets/personal.txt").permissions() == personal_permissions);
+    for (const auto &item : fs::recursive_directory_iterator(f.target()))
+        if (item.path() != f.target() / "assets/personal.txt")
+            assert((fs::status(item.path()).permissions() & fs::perms::all) == fs::perms::all);
+    assert(result.kept_at.empty() && !fs::exists(f.work / "previous" / kId));
+}
+
 // Legacy Eden data must remain discoverable across Store's whole-folder update.
 void check_eden_migration(const fs::path &base)
 {
@@ -1250,6 +1282,7 @@ int main(int argc, char **argv)
     check_archives(root);
     check_running(root);
     check_transactions(root);
+    check_quick_update(root);
     check_eden_migration(root);
     check_self_update(root);
     check_interruptions(root);
