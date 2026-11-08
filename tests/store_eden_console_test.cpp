@@ -13,7 +13,10 @@
 #include <unistd.h>
 
 using namespace store;
-const std::string root = "/data/prosperostore/.eden-fix-test-6b1ebc0-20261010-r2";
+#ifndef STORE_EDEN_TEST_ROOT
+#define STORE_EDEN_TEST_ROOT "/data/ps5-eden-quick-check-c66e72a4"
+#endif
+const std::string root = STORE_EDEN_TEST_ROOT;
 const std::string id = "PPSA99008";
 const char *folders[] = {"keys", "firmware", "roms", "updates", "mods", "ryujinx", "save-import"};
 void require(bool ok, const std::string &message)
@@ -23,7 +26,7 @@ void require(bool ok, const std::string &message)
 }
 void dirs(const std::string &p)
 {
-    require(p.starts_with(root), "outside test root");
+    require(p == root || p.starts_with(root + "/"), "outside test root");
     for (auto slash = p.find('/', root.size()); slash != p.npos; slash = p.find('/', slash + 1))
         require(install::make_directory(p.substr(0, slash)), "mkdir parent " + p);
     require(install::make_directory(p), "mkdir " + p);
@@ -47,7 +50,13 @@ std::string metadata(const std::string &version)
 {
     return "{\"titleId\":\"PPSA99008\",\"contentVersion\":\"" + version + "\"}";
 }
-std::string archive(const std::string &version)
+enum class LegacyRelease
+{
+    none,
+    collision,
+    empty_directory
+};
+std::string archive(const std::string &version, LegacyRelease legacy = LegacyRelease::none)
 {
     mz_zip_archive z{};
     require(mz_zip_writer_init_heap(&z, 0, 0), "zip init");
@@ -58,6 +67,16 @@ std::string archive(const std::string &version)
     require(
         mz_zip_writer_add_mem(&z, "PPSA99008/sce_sys/param.json", param.data(), param.size(), 6),
         "zip param");
+    if (legacy == LegacyRelease::collision)
+    {
+        const std::string included = "release file must not replace personal data";
+        require(mz_zip_writer_add_mem(&z, "PPSA99008/assets/roms/personal.bin", included.data(),
+                                      included.size(), 6),
+                "zip legacy collision");
+    }
+    if (legacy == LegacyRelease::empty_directory)
+        require(mz_zip_writer_add_mem(&z, "PPSA99008/assets/roms/", "", 0, 0),
+                "zip empty legacy directory");
     void *bytes = nullptr;
     size_t size = 0;
     require(mz_zip_writer_finalize_heap_archive(&z, &bytes, &size), "zip finish");
@@ -70,6 +89,7 @@ struct Fixture
 {
     std::string base, apps, app, data, state, work, bytes;
     install::Environment env;
+    LegacyRelease release = LegacyRelease::none;
     Fixture(const std::string &name)
         : base(root + "/" + name), apps(base + "/apps"), app(apps + "/" + id),
           data(base + "/data/prosperoeden"), state(base + "/state"), work(base + "/work")
@@ -107,11 +127,12 @@ struct Fixture
         put(data + "/user/save.bin", "preserve my save");
         dirs(data + "/roms");
     }
-    install::Result update(const std::string &version = "01.000.100")
+    install::Result update(const std::string &version = "01.000.100", bool overwrite = false)
     {
-        bytes = archive(version);
+        bytes = archive(version, release);
         install::Request r;
         r.location = apps;
+        r.overwrite = overwrite;
         r.entry.id = id;
         r.entry.status = "available";
         r.entry.format = "zip";
@@ -142,8 +163,22 @@ int main()
     if (!install::make_directory(root))
         return 3;
     put(root + "/result.txt", "STARTED\n");
-    unsigned passed = 0, skipped = 0;
-    std::string skip_details;
+    unsigned passed = 0, skipped = 0, failed = 0;
+    std::string skip_details, case_details;
+    const auto check = [&](const std::string &name, const auto &test)
+    {
+        try
+        {
+            test();
+            ++passed;
+            case_details += "PASS: " + name + "\n";
+        }
+        catch (const std::exception &e)
+        {
+            ++failed;
+            case_details += "FAIL: " + name + ": " + e.what() + "\n";
+        }
+    };
     try
     {
         {
@@ -222,12 +257,179 @@ int main()
             f.verify();
             ++passed;
         }
-        put(root + "/result.txt", "PASS: " + std::to_string(passed) + " console scenarios; " +
-                                      std::to_string(skipped) + " unsupported setup check(s)\n" +
-                                      skip_details +
-                                      "Production code commit: 6b1ebc0\nReal Eden files and "
-                                      "settings were not accessed.\n");
-        return 0;
+        // Quick updates overlay the app in place, but legacy personal folders must still
+        // reach Eden's external data directory before the update is recorded as complete.
+        check("quick-normal",
+              [&]
+              {
+                  Fixture f("quick-normal");
+                  const auto config = get(f.data + "/config/prosperoeden.json");
+                  const auto r = f.update("01.000.100", true);
+                  require(r.ok, "quick update: " + r.error);
+                  f.verify();
+                  for (const auto *folder : folders)
+                      require(install::kind(f.app + "/assets/" + folder) == install::Kind::absent,
+                              "legacy source moved: " + std::string(folder));
+                  require(get(f.data + "/config/prosperoeden.json") == config,
+                          "exact settings bytes unchanged");
+                  require(get(f.app + "/sce_sys/param.json") == metadata("01.000.100"),
+                          "quick update version");
+                  require(f.update("01.000.110", true).ok, "subsequent quick update");
+                  f.verify();
+              });
+        for (const std::string issue : {"conflict", "custom", "bad-config", "older-backup"})
+            check("quick-refuse-" + issue,
+                  [&]
+                  {
+                      Fixture f("quick-refuse-" + issue);
+                      if (issue == "conflict")
+                          put(f.data + "/roms/existing.nsp", "existing");
+                      if (issue == "custom")
+                          put(f.data + "/config/prosperoeden.json",
+                              "{\"game_files\":\"/mnt/usb0/user-games\"}");
+                      if (issue == "bad-config")
+                          put(f.data + "/config/prosperoeden.json", "invalid JSON");
+                      if (issue == "older-backup")
+                          put(f.work + "/previous/" + id + "/assets/roms/old.bin", "only copy");
+                      const auto r = f.update("01.000.100", true);
+                      require(!r.ok && !r.error.empty(), "quick refusal " + issue);
+                      for (const auto *folder : folders)
+                          require(get(f.app + "/assets/" + folder + "/personal.bin") ==
+                                      std::string(folder) + " data",
+                                  "source preserved " + issue);
+                      require(get(f.app + "/sce_sys/param.json") == metadata("01.000.080"),
+                              "old version preserved " + issue);
+                      require(install::kind(f.state + "/journal.json") == install::Kind::absent,
+                              "no transaction " + issue);
+                  });
+        check("quick-archive-collision",
+              [&]
+              {
+                  Fixture f("quick-archive-collision");
+                  f.release = LegacyRelease::collision;
+                  const auto r = f.update("01.000.100", true);
+                  require(!r.ok && !r.error.empty(), "archive with legacy files refused");
+                  require(get(f.app + "/assets/roms/personal.bin") == "roms data",
+                          "archive did not overwrite personal data");
+                  require(get(f.app + "/sce_sys/param.json") == metadata("01.000.080"),
+                          "archive refusal keeps old version");
+                  require(install::kind(f.data + "/keys") == install::Kind::absent,
+                          "archive refusal did not start migration");
+                  require(install::kind(f.state + "/journal.json") == install::Kind::absent &&
+                              install::kind(f.work + "/staging/" + id) == install::Kind::absent,
+                          "archive refusal closes transaction and staging");
+              });
+        check(
+            "quick-archive-collision-after-migration",
+            [&]
+            {
+                Fixture f("quick-archive-collision-after-migration");
+                require(f.update("01.000.090").ok, "initial migration");
+                f.verify();
+                f.release = LegacyRelease::collision;
+                const auto r = f.update("01.000.100", true);
+                require(!r.ok && !r.error.empty(), "packaged legacy files refused after migration");
+                require(get(f.app + "/sce_sys/param.json") == metadata("01.000.090"),
+                        "refusal keeps installed version");
+                require(install::kind(f.app + "/assets/roms/personal.bin") == install::Kind::absent,
+                        "packaged legacy file not installed");
+                f.verify();
+                require(install::kind(f.work + "/staging/" + id) == install::Kind::absent,
+                        "collision staging removed");
+            });
+        check("quick-empty-legacy-with-external-data",
+              [&]
+              {
+                  Fixture f("quick-empty-legacy-with-external-data");
+                  require(
+                      rmdir((f.data + "/roms").c_str()) == 0 &&
+                          rename((f.app + "/assets/roms").c_str(), (f.data + "/roms").c_str()) == 0,
+                      "some legacy data already migrated");
+                  put(f.data + "/roms/existing.nsp", "external game must be preserved");
+                  f.release = LegacyRelease::empty_directory;
+                  const auto r = f.update("01.000.100", true);
+                  require(r.ok, "empty source does not conflict with external data: " + r.error);
+                  f.verify();
+                  require(get(f.data + "/roms/existing.nsp") == "external game must be preserved",
+                          "existing external game preserved");
+              });
+        check("quick-empty-legacy-directory",
+              [&]
+              {
+                  Fixture f("quick-empty-legacy-directory");
+                  f.release = LegacyRelease::empty_directory;
+                  const auto r = f.update("01.000.100", true);
+                  require(r.ok, "empty legacy directory accepted: " + r.error);
+                  f.verify();
+              });
+        check("quick-journaled",
+              [&]
+              {
+                  Fixture f("quick-journaled");
+                  f.env.interrupt = [](const char *step)
+                  { return std::string(step) == "journaled"; };
+                  require(f.update("01.000.100", true).interrupted, "quick journaled interruption");
+                  f.env.interrupt = nullptr;
+                  require(install::recover(f.env).ok, "quick pre-overlay recovery");
+                  require(get(f.app + "/sce_sys/param.json") == metadata("01.000.080"),
+                          "pre-overlay recovery keeps old version");
+                  for (const auto *folder : folders)
+                      require(get(f.app + "/assets/" + folder + "/personal.bin") ==
+                                  std::string(folder) + " data",
+                              "pre-overlay legacy data preserved");
+                  require(install::kind(f.state + "/journal.json") == install::Kind::absent,
+                          "pre-overlay journal closed");
+                  require(f.update("01.000.100", true).ok, "retry quick update");
+                  f.verify();
+              });
+        for (const std::string cut : {"placed", "eden-moved-keys", "eden-moved-firmware",
+                                      "eden-moved-roms", "eden-moved-updates", "eden-moved-mods",
+                                      "eden-moved-ryujinx", "eden-moved-save-import", "recorded"})
+            check("quick-" + cut,
+                  [&]
+                  {
+                      Fixture f("quick-" + cut);
+                      f.env.interrupt = [&](const char *step) { return cut == step; };
+                      require(f.update("01.000.100", true).interrupted,
+                              "quick interruption " + cut);
+                      f.env.interrupt = nullptr;
+                      const auto r = install::recover(f.env);
+                      require(r.ok, "quick recovery " + cut + ": " + r.error);
+                      f.verify();
+                      require(get(f.app + "/sce_sys/param.json") == metadata("01.000.100"),
+                              "recovery keeps complete new app");
+                      require(install::recover(f.env).ok, "idempotent quick recovery " + cut);
+                      f.verify();
+                  });
+        check("quick-late-conflict",
+              [&]
+              {
+                  Fixture f("quick-late-conflict");
+                  f.env.interrupt = [](const char *step) { return std::string(step) == "placed"; };
+                  require(f.update("01.000.100", true).interrupted,
+                          "quick late conflict interruption");
+                  f.env.interrupt = nullptr;
+                  put(f.data + "/roms/new.nsp", "new data");
+                  require(!install::recover(f.env).ok, "quick late conflict refuses");
+                  require(get(f.data + "/roms/new.nsp") == "new data",
+                          "late destination preserved");
+                  require(get(f.app + "/assets/roms/personal.bin") == "roms data",
+                          "legacy source preserved");
+                  require(install::kind(f.state + "/journal.json") == install::Kind::file,
+                          "unfinished migration journal retained");
+                  require(rename((f.data + "/roms/new.nsp").c_str(),
+                                 (f.base + "/new.nsp").c_str()) == 0,
+                          "resolve synthetic late conflict");
+                  require(install::recover(f.env).ok, "quick late conflict resumes");
+                  f.verify();
+                  require(install::recover(f.env).ok, "quick late conflict recovery is idempotent");
+              });
+        put(root + "/result.txt",
+            std::string(failed ? "FAIL: " : "PASS: ") + std::to_string(passed) +
+                " console scenarios; " + std::to_string(failed) + " failed; " +
+                std::to_string(skipped) + " unsupported setup check(s)\n" + skip_details +
+                case_details + "Real Eden files and settings were not accessed.\n");
+        return failed ? 1 : 0;
     }
     catch (const std::exception &e)
     {

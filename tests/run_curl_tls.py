@@ -23,6 +23,14 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path.startswith("/redirect-body"):
+            size = 65537 if self.path == "/redirect-body-large" else 65536
+            self.send_response(302)
+            self.send_header("Location", "/ok")
+            self.send_header("Content-Length", str(size))
+            self.end_headers()
+            self.wfile.write(b"x" * size)
+            return
         if self.path == "/interim":
             self.wfile.write(b"HTTP/1.1 103 Early Hints\r\nETag: stale\r\n\r\n")
         self.send_response(302 if self.path == "/redirect" else

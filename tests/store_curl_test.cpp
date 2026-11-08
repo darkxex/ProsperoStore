@@ -35,6 +35,16 @@ int main(int argc, char **argv)
     result = store::net::curl_request(local + "/redirect", 4, sink, control, {}, argv[2]);
     assert(result.status == 302 && result.error.empty() &&
            result.location == "https://example.com/forbidden" && body.empty());
+    // Redirect pages have their own bound, independent of a small final file (a signature).
+    result = store::net::curl_request(local + "/redirect-body", 64, sink, control, {}, argv[2]);
+    assert(result.status == 302 && result.error.empty() && result.location == "/ok" &&
+           result.bytes == 0 && body.empty());
+    result =
+        store::net::curl_request(local + "/redirect-body-large", 64, sink, control, {}, argv[2]);
+    assert(result.status == 302 && !result.error.empty() && result.bytes == 0 && body.empty());
+    // The redirect allowance never raises the next response's actual file limit.
+    result = store::net::curl_request(local + "/ok", 3, sink, control, {}, argv[2]);
+    assert(!result.ok() && body.empty());
     result = store::net::curl_request(local + "/headers", 4, sink, control, {}, argv[2]);
     assert(!result.ok() && body.empty());
     result = store::net::curl_request(local + "/error", 3, sink, control, {}, argv[2]);
