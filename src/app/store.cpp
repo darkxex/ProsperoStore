@@ -537,7 +537,8 @@ void Screen::rebuild()
     for (int &count : counts_)
         count = 0;
     // The search is the words typed, in any order: each one must be in the name, the author, the
-    // title ID, the description, or the category (its key or its name in the current language).
+    // title ID, the description, or the category (its key, its English name or its name in the
+    // current language).
     std::vector<std::string> terms;
     {
         const auto query = folded(query_);
@@ -552,10 +553,13 @@ void Screen::rebuild()
             at = end;
         }
     }
+    // The English name always (the catalog's page searches it in every language), and the name in
+    // the current language besides.
     std::vector<std::string> category_names;
     if (!terms.empty())
         for (const auto &known : kCategories)
-            category_names.push_back(folded(std::string(tr(known.second))));
+            category_names.push_back(folded(std::string(known.second)) + ' ' +
+                                     folded(std::string(tr(known.second))));
     const auto matches = [&](const App &app)
     {
         const std::string *label = nullptr;
