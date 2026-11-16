@@ -31,7 +31,10 @@ constexpr std::size_t kApps = 20000;     // entries read from the index
 
 inline bool title_id(std::string_view value)
 {
-    return value.size() == 9 && value.starts_with("PPSA") &&
+    // The catalog's own rule: four capitals and five digits, but not PS4 (CUSA) or system (NPXS).
+    return value.size() == 9 && !value.starts_with("CUSA") && !value.starts_with("NPXS") &&
+           std::all_of(value.begin(), value.begin() + 4,
+                       [](char c) { return c >= 'A' && c <= 'Z'; }) &&
            std::all_of(value.begin() + 4, value.end(), [](char c) { return c >= '0' && c <= '9'; });
 }
 // A catalog id: the title ID, or TITLEID-owner for an app that shares its title ID.
