@@ -47,7 +47,8 @@ struct App
     std::vector<system::InstalledApp> installed = {};
     bool local_only = false;
     std::uint32_t art = 0; // the full-size picture, once the page has asked for it
-    std::string folded_name = {}, folded_author = {}; // for sorting and search
+    std::string folded_name = {}, folded_author = {};    // for sorting and search
+    std::string folded_id = {}, folded_description = {}; // for search only
     // The app's key art (its home-screen background, 16:9) and the colour the
     // screen leans toward while it is in focus.
     std::uint32_t background = 0;

@@ -542,8 +542,11 @@ void Screen::rebuild()
     for (std::size_t i = 0; i < apps_.size(); ++i)
     {
         const App &app = apps_[i];
+        // The search matches the name, the author, the title ID and the description.
         if (!query.empty() && app.folded_name.find(query) == std::string::npos &&
-            app.folded_author.find(query) == std::string::npos)
+            app.folded_author.find(query) == std::string::npos &&
+            app.folded_id.find(query) == std::string::npos &&
+            app.folded_description.find(query) == std::string::npos)
             continue;
         if (!developer_.empty() && (app.local_only || developer_key(app) != developer_))
             continue;
@@ -918,6 +921,8 @@ void Screen::set_catalog(std::vector<App> apps, std::string status, bool current
         app.installed.clear();
         app.folded_name = folded(app.name);
         app.folded_author = folded(app.author);
+        app.folded_id = folded(app.title_id);
+        app.folded_description = folded(app.description);
     }
     fresh_catalog_ = true;
     // With a thousand apps and a hundred installed, a search per installed
@@ -950,6 +955,7 @@ void Screen::set_catalog(std::vector<App> apps, std::string status, bool current
             local.local_only = true;
             local.folded_name = folded(local.name);
             local.folded_author = folded(local.author);
+            local.folded_id = folded(local.title_id);
             apps_.push_back(std::move(local));
             found = apps_.end() - 1;
             listed.emplace(found->title_id, apps_.size() - 1);
