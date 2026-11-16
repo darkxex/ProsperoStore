@@ -20,7 +20,7 @@ namespace store::social
 inline constexpr std::string_view kBase =
     "https://raw.githubusercontent.com/darkxex/ps5-homebrew-catalog/comments-data/";
 inline constexpr std::string_view kDiscussions = "https://github.com/";
-constexpr std::size_t kIndexLimit = 1024 * 1024;
+constexpr std::size_t kIndexLimit = 2 * 1024 * 1024;
 constexpr std::size_t kThreadLimit = 64 * 1024;
 constexpr std::size_t kComments = 20;    // the latest comments kept for a page
 constexpr std::size_t kAuthorLimit = 40; // characters

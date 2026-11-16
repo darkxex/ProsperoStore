@@ -14,7 +14,7 @@
 
 namespace store::catalog
 {
-constexpr std::size_t kIndexLimit = 4 * 1024 * 1024;
+constexpr std::size_t kIndexLimit = 8 * 1024 * 1024;
 constexpr std::size_t kDetailLimit = 64 * 1024;
 constexpr std::size_t kVersionsLimit = 1024 * 1024;
 constexpr std::size_t kNewsLimit = 64 * 1024;
