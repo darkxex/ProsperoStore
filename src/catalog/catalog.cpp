@@ -198,6 +198,12 @@ bool read_entry(yyjson_val *value, Entry &entry, bool detail)
         known_word(value, "category",
                    {"console-ports", "pc-ports", "homebrew-games", "emulators", "streaming",
                     "video", "music", "ai", "utilities", "tools", "showcases"});
+    // The index carries the short description too, which the search reads. A shape or a length
+    // this version does not expect leaves it empty, never a reason to refuse the app.
+    entry.description.clear();
+    if (auto *text = yyjson_obj_get(value, "description");
+        text && yyjson_is_str(text) && yyjson_get_len(text) <= 2048)
+        entry.description.assign(yyjson_get_str(text), yyjson_get_len(text));
     if (!detail)
         return true;
     // The safety facts are advice shown beside the app; a shape this version doesn't know is
