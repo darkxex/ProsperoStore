@@ -536,19 +536,48 @@ void Screen::rebuild()
     visible_.clear();
     for (int &count : counts_)
         count = 0;
-    const auto query = folded(query_);
+    // The search is the words typed, in any order: each one must be in the name, the author, the
+    // title ID, the description, or the category (its key or its name in the current language).
+    std::vector<std::string> terms;
+    {
+        const auto query = folded(query_);
+        std::size_t at = 0;
+        while (at < query.size())
+        {
+            const auto start = query.find_first_not_of(' ', at);
+            if (start == std::string::npos)
+                break;
+            const auto end = std::min(query.find(' ', start), query.size());
+            terms.push_back(query.substr(start, end - start));
+            at = end;
+        }
+    }
+    std::vector<std::string> category_names;
+    if (!terms.empty())
+        for (const auto &known : kCategories)
+            category_names.push_back(folded(std::string(tr(known.second))));
+    const auto matches = [&](const App &app)
+    {
+        const std::string *label = nullptr;
+        for (std::size_t k = 0; k < category_names.size(); ++k)
+            if (kCategories[k].first == app.category)
+                label = &category_names[k];
+        return std::all_of(terms.begin(), terms.end(),
+                           [&](const std::string &term)
+                           {
+                               const auto in = [&](const std::string &text)
+                               { return text.find(term) != std::string::npos; };
+                               return in(app.folded_name) || in(app.folded_author) ||
+                                      in(app.folded_id) || in(app.folded_description) ||
+                                      in(app.folded_category) || (label && in(*label));
+                           });
+    };
     // A grid section narrowed to one category (L2 / R2); its counts still hold the whole section.
     const bool narrowed = !category_.empty() && !categories_here().empty();
     for (std::size_t i = 0; i < apps_.size(); ++i)
     {
         const App &app = apps_[i];
-        // The search matches the name, the author, the title ID, the description and the
-        // category's key.
-        if (!query.empty() && app.folded_name.find(query) == std::string::npos &&
-            app.folded_author.find(query) == std::string::npos &&
-            app.folded_id.find(query) == std::string::npos &&
-            app.folded_description.find(query) == std::string::npos &&
-            app.folded_category.find(query) == std::string::npos)
+        if (!matches(app))
             continue;
         if (!developer_.empty() && (app.local_only || developer_key(app) != developer_))
             continue;
