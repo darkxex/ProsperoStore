@@ -221,6 +221,39 @@ std::string folded(std::string text)
     return text;
 }
 
+// The text as the search compares it: lower case and no accents (the Latin-1 letters), so
+// "emulacion" finds "Emulación". Anything else is kept as it is.
+std::string search_fold(std::string_view text)
+{
+    // U+00C0 .. U+00FF as the letter without its accent; a space where there is none.
+    constexpr std::string_view kBase =
+        "aaaaaa ceeeeiiii nooooo  uuuuy  aaaaaa ceeeeiiii nooooo  uuuuy y";
+    static_assert(kBase.size() == 64);
+    std::string out;
+    out.reserve(text.size());
+    for (std::size_t i = 0; i < text.size(); ++i)
+    {
+        const auto c = static_cast<unsigned char>(text[i]);
+        if (c < 128)
+        {
+            out += static_cast<char>(std::tolower(c));
+            continue;
+        }
+        if (c == 0xC3 && i + 1 < text.size())
+        {
+            const auto d = static_cast<unsigned char>(text[i + 1]);
+            if (d >= 0x80 && d <= 0xBF && kBase[d - 0x80] != ' ')
+            {
+                out += kBase[d - 0x80];
+                ++i;
+                continue;
+            }
+        }
+        out += static_cast<char>(c);
+    }
+    return out;
+}
+
 // "31.8 MB", "548 GB": sizes as people say them.
 std::string size_text(std::uint64_t bytes)
 {
@@ -537,11 +570,11 @@ void Screen::rebuild()
     for (int &count : counts_)
         count = 0;
     // The search is the words typed, in any order: each one must be in the name, the author, the
-    // title ID, the description, or the category (its key, its English name or its name in the
-    // current language).
+    // title ID, the description, the kind, or the category (its key, its English name or its name
+    // in the current language).
     std::vector<std::string> terms;
     {
-        const auto query = folded(query_);
+        const auto query = search_fold(query_);
         std::size_t at = 0;
         while (at < query.size())
         {
@@ -558,8 +591,8 @@ void Screen::rebuild()
     std::vector<std::string> category_names;
     if (!terms.empty())
         for (const auto &known : kCategories)
-            category_names.push_back(folded(std::string(known.second)) + ' ' +
-                                     folded(std::string(tr(known.second))));
+            category_names.push_back(search_fold(known.second) + ' ' +
+                                     search_fold(tr(known.second)));
     const auto matches = [&](const App &app)
     {
         const std::string *label = nullptr;
@@ -571,9 +604,7 @@ void Screen::rebuild()
                            {
                                const auto in = [&](const std::string &text)
                                { return text.find(term) != std::string::npos; };
-                               return in(app.folded_name) || in(app.folded_author) ||
-                                      in(app.folded_id) || in(app.folded_description) ||
-                                      in(app.folded_category) || (label && in(*label));
+                               return in(app.folded_search) || (label && in(*label));
                            });
     };
     // A grid section narrowed to one category (L2 / R2); its counts still hold the whole section.
@@ -956,9 +987,8 @@ void Screen::set_catalog(std::vector<App> apps, std::string status, bool current
         app.installed.clear();
         app.folded_name = folded(app.name);
         app.folded_author = folded(app.author);
-        app.folded_id = folded(app.title_id);
-        app.folded_description = folded(app.description);
-        app.folded_category = folded(app.category);
+        app.folded_search = search_fold(app.name + ' ' + app.author + ' ' + app.title_id + ' ' +
+                                        app.description + ' ' + app.kind + ' ' + app.category);
     }
     fresh_catalog_ = true;
     // With a thousand apps and a hundred installed, a search per installed
@@ -991,7 +1021,8 @@ void Screen::set_catalog(std::vector<App> apps, std::string status, bool current
             local.local_only = true;
             local.folded_name = folded(local.name);
             local.folded_author = folded(local.author);
-            local.folded_id = folded(local.title_id);
+            local.folded_search =
+                search_fold(local.name + ' ' + local.author + ' ' + local.title_id);
             apps_.push_back(std::move(local));
             found = apps_.end() - 1;
             listed.emplace(found->title_id, apps_.size() - 1);
