@@ -73,7 +73,7 @@ bool start(const std::string &root)
             std::setvbuf(stderr, nullptr, _IONBF, 0);
         }
     }
-    return redirected && crash_report::install(directory.c_str(), "01.000.119", lifecycle);
+    return redirected && crash_report::install(directory.c_str(), "01.000.120", lifecycle);
 }
 void hold_log(bool hold)
 {
