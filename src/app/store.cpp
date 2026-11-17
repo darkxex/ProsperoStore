@@ -1736,8 +1736,11 @@ void Screen::update_home(const InputFrame &input, ui::Feedback &feedback)
     }
     else if (input.is_pressed(Action::back))
     {
-        // Back has one step to take first: from deep in the page to its top.
-        if (zone_ == Zone::grid && discover() && shelf_of(focus_) > 0)
+        // Back has one step to take first: drop the search, as emptying it in the keyboard does,
+        // or go from deep in the page to its top.
+        if (!query_.empty())
+            set_query(std::string());
+        else if (zone_ == Zone::grid && discover() && shelf_of(focus_) > 0)
             focus_ = shelves_.front().start + shelves_.front().pos;
         else if (zone_ == Zone::grid && !discover() && focus_ >= kColumns)
             focus_ %= kColumns;
